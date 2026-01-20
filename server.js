@@ -3,14 +3,14 @@ import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import multer from "multer"; // 1. مكتبة رفع الصور
+import multer from "multer";
 import path from "path";
-import { fileURLToPath } from "url"; // ضروري للتعامل مع المسارات في ES6
+import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import postRoutes from "./routes/posts.js";
 
-// إعداد المسارات (لأننا نستخدم type: module)
+// إعداد المسارات
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -19,30 +19,39 @@ connectDB();
 
 const app = express();
 
-// إعداد مجلد الصور ليكون عاماً ويمكن الوصول إليه
-// أي صورة توضع في public/images يمكن رؤيتها عبر الرابط /images/filename.png
-app.use("/images", express.static(path.join(__dirname, "public/images")));
+// ✅ إعدادات CORS الصحيحة (هذا هو الحل لمشكلتك)
+// يسمح فقط للواجهة الخاصة بك بالاتصال
+app.use(cors({
+  origin: ["https://instagram-backend-esxi.vercel.app", "http://localhost:5173"], // رابط الواجهة + رابط التجربة المحلية
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // العمليات المسموحة
+      credentials: true, // للسماح بمرور التوكن والكوكيز
+        allowedHeaders: ["Content-Type", "Authorization"]
+        }));
 
-app.use(helmet());
-app.use(cors());
-app.use(express.json());
-app.use(morgan("dev"));
+        // التأكد من قبول الطلبات التمهيدية (Pre-flight requests)
+        app.options('*', cors());
 
-// --- إعدادات رفع الصور (Multer) ---
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-      // تحديد مكان الحفظ
-          cb(null, "public/images");
-            },
-              filename: (req, file, cb) => {
-                  // تحديد اسم الملف (نأخذه من البيانات القادمة من الواجهة)
+        // إعداد مجلد الصور
+        app.use("/images", express.static(path.join(__dirname, "public/images")));
+
+        app.use(helmet());
+        app.use(express.json());
+        app.use(morgan("dev"));
+
+        // --- إعدادات رفع الصور (Multer) ---
+        // ⚠️ ملاحظة: الصور المرفوعة هنا ستختفي بعد فترة في Vercel لأنه لا يدعم تخزين الملفات الدائم
+        // (لحل دائم لاحقاً يجب استخدام Cloudinary، لكن دعنا نصلح الاتصال أولاً)
+        const storage = multer.diskStorage({
+          destination: (req, file, cb) => {
+              cb(null, "public/images");
+                },
+                  filename: (req, file, cb) => {
                       cb(null, req.body.name);
                         },
                         });
 
                         const upload = multer({ storage: storage });
 
-                        // رابط رفع الصور
                         app.post("/api/upload", upload.single("file"), (req, res) => {
                           try {
                               return res.status(200).json("File uploaded successfully");
@@ -50,9 +59,8 @@ const storage = multer.diskStorage({
                                     console.error(error);
                                       }
                                       });
-                                      // ------------------------------------
 
-                                      // المسارات الأساسية
+                                      // المسارات
                                       app.use("/api/auth", authRoutes);
                                       app.use("/api/posts", postRoutes);
 
