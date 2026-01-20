@@ -1,5 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { API_URL } from "../config"; // ✅ ربط السيرفر
 
 // --- الأيقونات ---
 const Icons = {
@@ -18,41 +20,47 @@ const Icons = {
 
 function Home() {
   const navigate = useNavigate();
+  const [posts, setPosts] = useState([]); // ✅ حالة لتخزين المنشورات القادمة من السيرفر
+  const [loading, setLoading] = useState(true);
+
+  // جلب المستخدم الحالي
+  const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) navigate("/");
-  }, []);
+    const fetchPosts = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+            navigate("/");
+            return;
+        }
 
+        // ✅ جلب الـ Timeline (منشورات المستخدم + من يتابعهم)
+        // ملاحظة: إذا كان المستخدم جديداً، قد تكون القائمة فارغة
+        const res = await axios.get(`${API_URL}/api/posts/timeline/${user._id}`);
+        
+        // ترتيب المنشورات من الأحدث للأقدم
+        setPosts(
+          res.data.sort((p1, p2) => {
+            return new Date(p2.createdAt) - new Date(p1.createdAt);
+          })
+        );
+        setLoading(false);
+      } catch (err) {
+        console.log(err);
+        setLoading(false);
+      }
+    };
+    fetchPosts();
+  }, [user?._id, navigate]);
+
+
+  // Stories (بيانات ثابتة مؤقتاً للشكل الجمالي)
   const stories = [
-    { id: 0, user: "Your Story", img: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=60", isUser: true },
-    { id: 1, user: "sara_des", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60" },
-    { id: 2, user: "travel_99", img: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150&auto=format&fit=crop&q=60" },
-    { id: 3, user: "music_life", img: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&auto=format&fit=crop&q=60" },
-    { id: 4, user: "art_gallery", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=60" },
-  ];
-
-  const posts = [
-    {
-      id: 1,
-      user: "breezyy_girl",
-      userImg: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=60",
-      postImg: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=800&auto=format&fit=crop&q=80",
-      likes: "12,456",
-      caption: "Best friends forever! 💖✨",
-      comments: "View all 324 comments",
-      time: "2 HOURS AGO"
-    },
-    {
-      id: 2,
-      user: "ahmed_ali",
-      userImg: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=60",
-      postImg: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&auto=format&fit=crop&q=80",
-      likes: "856",
-      caption: "What a view! 🏔️ The mountains are calling.",
-      comments: "View all 12 comments",
-      time: "5 HOURS AGO"
-    }
+    { id: 0, user: user?.username || "You", img: user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png", isUser: true },
+    { id: 1, user: "nexo_official", img: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=150" },
+    { id: 2, user: "travel_world", img: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150" },
+    { id: 3, user: "music_vibes", img: "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150" },
   ];
 
   const styles = {
@@ -100,22 +108,22 @@ function Home() {
       minWidth: "70px",
       cursor: "pointer",
     },
-    storyRing: {
-      width: "68px",
-      height: "68px",
-      borderRadius: "50%",
-      padding: "2px",
-      background: "linear-gradient(45deg, #4facfe 0%, #00f2fe 100%)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-    },
     storyRingUser: { 
         width: "68px",
         height: "68px",
         borderRadius: "50%",
         position: "relative",
     },
+    storyRing: {
+        width: "68px",
+        height: "68px",
+        borderRadius: "50%",
+        padding: "2px",
+        background: "linear-gradient(45deg, #4facfe 0%, #00f2fe 100%)",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      },
     storyImg: {
       width: "100%",
       height: "100%",
@@ -169,11 +177,19 @@ function Home() {
       fontSize: "13px",
       color: "#004080",
     },
+    userAvatar: {
+        width: '32px', 
+        height: '32px', 
+        borderRadius: '50%', 
+        border: '1px solid #cce5ff',
+        objectFit: "cover"
+    },
     postImage: {
       width: "100%",
-      aspectRatio: "1 / 1", 
+      // aspectRatio: "1 / 1",  // إزالة هذا لكي تظهر الصورة بأبعادها الطبيعية
       objectFit: "cover",   
       display: "block",
+      maxHeight: "500px"
     },
     postActions: {
         padding: "12px 14px 0 14px",
@@ -199,12 +215,6 @@ function Home() {
         fontSize: "13px",
         lineHeight: "1.4",
         color: "#004080",
-    },
-    comments: {
-        color: "#0066cc",
-        fontSize: "13px",
-        marginTop: "6px",
-        cursor: "pointer",
     },
     time: {
         fontSize: "10px",
@@ -235,6 +245,12 @@ function Home() {
         overflow: "hidden",
         cursor: "pointer",
         border: "2px solid #007aff",
+    },
+    emptyState: {
+        textAlign: "center",
+        padding: "40px 20px",
+        color: "#8e8e8e",
+        fontSize: "16px"
     }
   };
 
@@ -246,12 +262,12 @@ function Home() {
         <Icons.Logo />
         <div style={styles.headerIcons}>
           <Icons.Heart />
-          {/* ✅ تفعيل زر الرسائل هنا */}
           <div 
             style={{position: 'relative', cursor: "pointer"}}
             onClick={() => navigate("/messages")} 
           >
             <Icons.Messenger />
+            {/* رقم ثابت للتجربة */}
             <div style={{position: 'absolute', top: '-2px', right: '-3px', width: '16px', height: '16px', backgroundColor: '#ff3b30', borderRadius: '50%', color: 'white', fontSize: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold'}}>3</div>
           </div>
         </div>
@@ -276,43 +292,66 @@ function Home() {
         ))}
       </div>
 
-      {/* Feed */}
-      {posts.map((post) => (
-        <div key={post.id} style={styles.post}>
-          {/* Header */}
-          <div style={styles.postHeader}>
-            <div style={styles.userInfo}>
-                <img src={post.userImg} style={{width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #cce5ff'}} alt="user" />
-                {post.user}
-            </div>
-            <Icons.More />
+      {/* Feed - عرض المنشورات الحقيقية */}
+      {loading ? (
+          <div style={styles.emptyState}>Loading posts...</div>
+      ) : posts.length === 0 ? (
+          <div style={styles.emptyState}>
+              <p>No posts yet! 📸</p>
+              <p style={{fontSize: "14px", marginTop: "10px"}}>Follow people or create your first post.</p>
+              <button 
+                onClick={() => navigate("/create")}
+                style={{marginTop: "15px", padding: "10px 20px", backgroundColor: "#007aff", color: "white", border: "none", borderRadius: "20px", fontWeight: "bold"}}
+              >
+                  Create Post
+              </button>
           </div>
+      ) : (
+        posts.map((post) => (
+            <div key={post._id} style={styles.post}>
+            {/* Post Header */}
+            <div style={styles.postHeader}>
+                <div style={styles.userInfo}>
+                    <img 
+                        src={post.userAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                        style={styles.userAvatar} 
+                        alt="user" 
+                    />
+                    {/* سنعرض اسم المستخدم إذا كان متاحاً في البوست، وإلا سنكتب Nexo User */}
+                    {post.username || "Nexo User"} 
+                </div>
+                <Icons.More />
+            </div>
 
-          {/* Image */}
-          <img src={post.postImg} alt="post" style={styles.postImage} />
-          
-          {/* Actions */}
-          <div style={styles.postActions}>
-            <div style={styles.leftActions}>
-                <Icons.Heart />
-                <Icons.Comment />
-                <Icons.Share />
+            {/* Post Image (Only if exists) */}
+            {post.img && (
+                <img src={post.img} alt="post" style={styles.postImage} />
+            )}
+            
+            {/* Actions */}
+            <div style={styles.postActions}>
+                <div style={styles.leftActions}>
+                    <Icons.Heart />
+                    <Icons.Comment />
+                    <Icons.Share />
+                </div>
+                <Icons.Save />
             </div>
-            <Icons.Save />
-          </div>
-          
-          {/* Likes & Caption */}
-          <div style={styles.postContent}>
-            <div style={styles.likes}>{post.likes} likes</div>
-            <div style={styles.caption}>
-                <span style={{fontWeight: "600", marginRight: "6px"}}>{post.user}</span>
-                {post.caption}
+            
+            {/* Likes & Caption */}
+            <div style={styles.postContent}>
+                <div style={styles.likes}>{post.likes?.length || 0} likes</div>
+                
+                <div style={styles.caption}>
+                    <span style={{fontWeight: "600", marginRight: "6px"}}>{post.username || "User"}</span>
+                    {post.desc}
+                </div>
+                
+                <div style={styles.time}>{new Date(post.createdAt).toDateString()}</div>
             </div>
-            <div style={styles.comments}>{post.comments}</div>
-            <div style={styles.time}>{post.time}</div>
-          </div>
-        </div>
-      ))}
+            </div>
+        ))
+      )}
 
       {/* Bottom Nav */}
       <div style={styles.bottomNav}>
