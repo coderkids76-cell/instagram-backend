@@ -22,7 +22,7 @@ const app = express();
 // ✅ إعدادات CORS الصحيحة (هذا هو الحل لمشكلتك)
 // يسمح فقط للواجهة الخاصة بك بالاتصال
 app.use(cors({
-  origin: ["https://instagram-backend-esxi.vercel.app", "http://localhost:5173"], // رابط الواجهة + رابط التجربة المحلية
+  origin: ["https://instagram-backend-esxi.vercel.app", "https://nexo-api-lovat.vercel.app/"], // رابط الواجهة + رابط التجربة المحلية
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // العمليات المسموحة
       credentials: true, // للسماح بمرور التوكن والكوكيز
         allowedHeaders: ["Content-Type", "Authorization"]
@@ -73,4 +73,3 @@ app.use(cors({
                                         app.listen(PORT, () => {
                                           console.log(`Server started on port ${PORT}`);
                                           });
-                                          
