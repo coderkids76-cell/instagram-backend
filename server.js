@@ -15,61 +15,65 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
-connectDB();
 
-const app = express();
+// ✅ التأكد من الاتصال بقاعدة البيانات مع معالجة الأخطاء
+connectDB().then(() => {
+    console.log("Database Connected Successfully");
+    }).catch((err) => {
+        console.error("Database Connection Failed:", err);
+        });
 
-// ✅ إعدادات CORS الصحيحة (هذا هو الحل لمشكلتك)
-// يسمح فقط للواجهة الخاصة بك بالاتصال
-app.use(cors({
-  origin: ["https://instagram-backend-esxi.vercel.app", "https://nexo-api-lovat.vercel.app/"], // رابط الواجهة + رابط التجربة المحلية
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // العمليات المسموحة
-      credentials: true, // للسماح بمرور التوكن والكوكيز
-        allowedHeaders: ["Content-Type", "Authorization"]
-        }));
+        const app = express();
 
-        // التأكد من قبول الطلبات التمهيدية (Pre-flight requests)
-        app.options('*', cors());
+        // ✅ التغيير الجذري هنا: origin: true
+        // هذا يسمح لأي موقع بالاتصال (حل سحري لمشاكل Vercel المعقدة)
+        app.use(cors({
+          origin: true, 
+            credentials: true, 
+              methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                allowedHeaders: ["Content-Type", "Authorization"]
+                }));
 
-        // إعداد مجلد الصور
-        app.use("/images", express.static(path.join(__dirname, "public/images")));
+                // إعداد مجلد الصور
+                app.use("/images", express.static(path.join(__dirname, "public/images")));
 
-        app.use(helmet());
-        app.use(express.json());
-        app.use(morgan("dev"));
+                app.use(helmet());
+                app.use(express.json());
+                app.use(morgan("dev"));
 
-        // --- إعدادات رفع الصور (Multer) ---
-        // ⚠️ ملاحظة: الصور المرفوعة هنا ستختفي بعد فترة في Vercel لأنه لا يدعم تخزين الملفات الدائم
-        // (لحل دائم لاحقاً يجب استخدام Cloudinary، لكن دعنا نصلح الاتصال أولاً)
-        const storage = multer.diskStorage({
-          destination: (req, file, cb) => {
-              cb(null, "public/images");
-                },
-                  filename: (req, file, cb) => {
-                      cb(null, req.body.name);
+                // --- إعدادات رفع الصور ---
+                const storage = multer.diskStorage({
+                  destination: (req, file, cb) => {
+                      cb(null, "public/images");
                         },
-                        });
+                          filename: (req, file, cb) => {
+                              cb(null, req.body.name);
+                                },
+                                });
 
-                        const upload = multer({ storage: storage });
+                                const upload = multer({ storage: storage });
 
-                        app.post("/api/upload", upload.single("file"), (req, res) => {
-                          try {
-                              return res.status(200).json("File uploaded successfully");
-                                } catch (error) {
-                                    console.error(error);
-                                      }
-                                      });
+                                app.post("/api/upload", upload.single("file"), (req, res) => {
+                                  try {
+                                      return res.status(200).json("File uploaded successfully");
+                                        } catch (error) {
+                                            console.error(error);
+                                                return res.status(500).json(error);
+                                                  }
+                                                  });
 
-                                      // المسارات
-                                      app.use("/api/auth", authRoutes);
-                                      app.use("/api/posts", postRoutes);
+                                                  // المسارات
+                                                  app.use("/api/auth", authRoutes);
+                                                  app.use("/api/posts", postRoutes);
 
-                                      app.get("/", (req, res) => {
-                                        res.send("Instagram Backend is Running! 🚀");
-                                        });
+                                                  // مسار تجريبي للتأكد أن السيرفر يعمل
+                                                  app.get("/", (req, res) => {
+                                                    res.status(200).json({ message: "Server is working properly!" });
+                                                    });
 
-                                        const PORT = process.env.PORT || 3000;
+                                                    const PORT = process.env.PORT || 3000;
 
-                                        app.listen(PORT, () => {
-                                          console.log(`Server started on port ${PORT}`);
-                                          });
+                                                    app.listen(PORT, () => {
+                                                      console.log(`Server started on port ${PORT}`);
+                                                      });
+                                                      
