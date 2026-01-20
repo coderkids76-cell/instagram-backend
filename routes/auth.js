@@ -1,7 +1,10 @@
-const router = require('express').Router();
-const { registerUser, loginUser } = require('../controllers/authController');
+import express from "express";
+// لاحظ إضافة .js في النهاية، هذا ضروري جداً في النظام الحديث
+import { registerUser, loginUser } from "../controllers/authController.js";
 
-router.post('/register', registerUser);
-router.post('/login', loginUser); // الرابط الجديد
+const router = express.Router();
 
-module.exports = router;
+router.post("/register", registerUser);
+router.post("/login", loginUser);
+
+export default router;
