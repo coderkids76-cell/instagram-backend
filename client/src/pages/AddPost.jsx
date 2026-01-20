@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import { API_URL } from "../config"; // ✅ ربط السيرفر
+import { API_URL } from "../config"; 
 
 const ModernIcons = {
   Close: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
@@ -13,71 +13,52 @@ const ModernIcons = {
 function AddPost() {
   const navigate = useNavigate();
   const location = useLocation();
-  
   const isReelMode = location.state?.type === "reel";
 
-  const [media, setMedia] = useState(null);
-  const [preview, setPreview] = useState(null);
   const [caption, setCaption] = useState("");
-  const [fileType, setFileType] = useState(""); 
-  const [loading, setLoading] = useState(false); // حالة التحميل
+  const [preview, setPreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [imageBase64, setImageBase64] = useState(""); // لتخزين كود الصورة
 
+  // ✅ دالة سحرية لتحويل الملف إلى نص (Base64)
   const handleMediaChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      setMedia(file);
-      setPreview(URL.createObjectURL(file));
-      setFileType(file.type.startsWith("video") ? "video" : "image");
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = () => {
+        setPreview(reader.result); // للعرض
+        setImageBase64(reader.result); // للإرسال
+      };
     }
   };
 
-  // حذف الصورة المختارة
   const removeMedia = (e) => {
     e.stopPropagation();
-    setMedia(null);
     setPreview(null);
-    setFileType("");
+    setImageBase64("");
   };
 
   const handleShare = async () => {
-    // ✅ التحقق: يجب أن يكون هناك نص أو صورة على الأقل
-    if (!media && !caption.trim()) {
+    if (!imageBase64 && !caption.trim()) {
         return alert("Please write something or select media!");
     }
 
     setLoading(true);
     const user = JSON.parse(localStorage.getItem("user"));
 
-    // تجهيز بيانات المنشور
+    // ✅ نرسل الصورة كـ نص (img) مباشرة مع البيانات
     const newPost = {
       userId: user._id,
       desc: caption,
+      img: imageBase64 // هنا نرسل الصورة المحولة
     };
 
     try {
-        // 1. إذا كان هناك صورة/فيديو، نقوم برفعها أولاً (اختياري حسب السيرفر)
-        if (media) {
-            const data = new FormData();
-            const fileName = Date.now() + media.name; // اسم فريد للملف
-            data.append("name", fileName);
-            data.append("file", media);
-            
-            newPost.img = fileName; // ربط اسم الصورة بالمنشور
-
-            try {
-                // محاولة رفع الصورة (تتطلب إعداد خاص في السيرفر /api/upload)
-                // إذا لم يكن السيرفر يدعم الرفع حالياً، سيفشل هذا الجزء ولكن سيتم نشر النص
-                await axios.post(`${API_URL}/api/upload`, data);
-            } catch (err) {
-                console.log("Upload skipped or failed (Setup /api/upload on backend to fix)");
-            }
-        }
-
-        // 2. إرسال المنشور للسيرفر
+        // إرسال المنشور للسيرفر مباشرة (بدون خطوة upload منفصلة)
         await axios.post(`${API_URL}/api/posts`, newPost);
 
-        // التوجيه بعد النجاح
-        if (isReelMode || fileType === 'video') {
+        if (isReelMode) {
             navigate("/profile");
         } else {
             navigate("/home");
@@ -85,12 +66,13 @@ function AddPost() {
 
     } catch (err) {
         console.error(err);
-        alert("Failed to share post. Try again.");
+        alert("Failed to share post.");
     } finally {
         setLoading(false);
     }
   };
 
+  // ... (نفس الستايلات السابقة بدون تغيير)
   const glassStyle = {
     background: "rgba(255, 255, 255, 0.7)",
     backdropFilter: "blur(20px)",
@@ -128,7 +110,7 @@ function AddPost() {
     uploadBox: {
       ...glassStyle,
       width: "100%",
-      aspectRatio: preview ? (isReelMode ? "9/16" : "auto") : "2/1", // تصغير الحجم إذا لم تكن هناك صورة
+      aspectRatio: preview ? (isReelMode ? "9/16" : "auto") : "2/1", 
       minHeight: "150px",
       borderRadius: "24px",
       display: "flex",
@@ -147,14 +129,7 @@ function AddPost() {
       maxHeight: "400px"
     },
     removeBtn: {
-        position: "absolute",
-        top: "10px",
-        right: "10px",
-        backgroundColor: "rgba(255,255,255,0.8)",
-        borderRadius: "50%",
-        padding: "5px",
-        cursor: "pointer",
-        zIndex: 10
+        position: "absolute", top: "10px", right: "10px", backgroundColor: "rgba(255,255,255,0.8)", borderRadius: "50%", padding: "5px", cursor: "pointer", zIndex: 10
     }
   };
 
@@ -169,8 +144,6 @@ function AddPost() {
       </div>
 
       <div style={{padding: "20px"}}>
-        
-        {/* Text Area First - الكتابة أولاً الآن */}
         <textarea 
             style={{...glassStyle, width: "100%", padding: "15px", marginBottom: "20px", borderRadius: "15px", border: "none", outline: "none", fontSize: "16px"}} 
             placeholder="What's on your mind?" 
@@ -178,40 +151,29 @@ function AddPost() {
             value={caption}
             onChange={(e) => setCaption(e.target.value)}
         />
-
-        {/* Upload Box */}
         <div 
             style={styles.uploadBox}
             onClick={() => document.getElementById("fileInput").click()}
         >
             {preview ? (
                 <>
-                    <div style={styles.removeBtn} onClick={removeMedia}>
-                        <ModernIcons.Remove />
-                    </div>
-                    {fileType === "video" ? (
-                        <video src={preview} style={styles.mediaPreview} autoPlay loop muted />
-                    ) : (
-                        <img src={preview} style={styles.mediaPreview} alt="preview" />
-                    )}
+                    <div style={styles.removeBtn} onClick={removeMedia}><ModernIcons.Remove /></div>
+                    <img src={preview} style={styles.mediaPreview} alt="preview" />
                 </>
             ) : (
                 <div style={{textAlign: "center", color: "#004080", padding: "20px"}}>
                     <ModernIcons.Upload />
-                    <p style={{fontWeight: "600", marginTop: "10px"}}>Add Photo / Video</p>
-                    <span style={{fontSize: "12px", opacity: 0.7}}>(Optional)</span>
+                    <p style={{fontWeight: "600", marginTop: "10px"}}>Add Photo</p>
                 </div>
             )}
-            
             <input 
                 type="file" 
                 id="fileInput" 
                 style={{display: "none"}} 
-                accept={isReelMode ? "video/*" : "image/*,video/*"}
+                accept="image/*"
                 onChange={handleMediaChange}
             />
         </div>
-
       </div>
     </div>
   );

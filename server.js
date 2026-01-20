@@ -3,77 +3,53 @@ import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import postRoutes from "./routes/posts.js";
 
-// إعداد المسارات
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
+connectDB();
 
-// ✅ التأكد من الاتصال بقاعدة البيانات مع معالجة الأخطاء
-connectDB().then(() => {
-    console.log("Database Connected Successfully");
-    }).catch((err) => {
-        console.error("Database Connection Failed:", err);
-        });
+const app = express();
 
-        const app = express();
+// ✅ إعدادات CORS
+app.use(cors({
+  origin: true,
+    credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"]
+        }));
 
-        // ✅ التغيير الجذري هنا: origin: true
-        // هذا يسمح لأي موقع بالاتصال (حل سحري لمشاكل Vercel المعقدة)
-        app.use(cors({
-          origin: true, 
-            credentials: true, 
-              methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                allowedHeaders: ["Content-Type", "Authorization"]
-                }));
+        // مجلد الصور (لن نعتمد عليه في الرفع بعد الآن، لكن نتركه للعرض)
+        app.use("/images", express.static(path.join(__dirname, "public/images")));
 
-                // إعداد مجلد الصور
-                app.use("/images", express.static(path.join(__dirname, "public/images")));
+        app.use(helmet());
 
-                app.use(helmet());
-                app.use(express.json());
-                app.use(morgan("dev"));
+        // ✅✅✅ زيادة حجم البيانات المسموح به لرفع الصور كـ Base64
+        app.use(express.json({ limit: "50mb" })); 
+        app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-                // --- إعدادات رفع الصور ---
-                const storage = multer.diskStorage({
-                  destination: (req, file, cb) => {
-                      cb(null, "public/images");
-                        },
-                          filename: (req, file, cb) => {
-                              cb(null, req.body.name);
-                                },
-                                });
+        app.use(morgan("dev"));
 
-                                const upload = multer({ storage: storage });
+        // (تم إزالة كود Multer لأننا لن نستخدمه في الرفع بعد الآن)
 
-                                app.post("/api/upload", upload.single("file"), (req, res) => {
-                                  try {
-                                      return res.status(200).json("File uploaded successfully");
-                                        } catch (error) {
-                                            console.error(error);
-                                                return res.status(500).json(error);
-                                                  }
-                                                  });
+        // المسارات
+        app.use("/api/auth", authRoutes);
+        app.use("/api/posts", postRoutes);
 
-                                                  // المسارات
-                                                  app.use("/api/auth", authRoutes);
-                                                  app.use("/api/posts", postRoutes);
+        app.get("/", (req, res) => {
+          res.send("✅ Instagram Backend is Running!");
+          });
 
-                                                  // مسار تجريبي للتأكد أن السيرفر يعمل
-                                                  app.get("/", (req, res) => {
-                                                    res.status(200).json({ message: "Server is working properly!" });
-                                                    });
+          const PORT = process.env.PORT || 3000;
+          app.listen(PORT, () => {
+            console.log(`Server started on port ${PORT}`);
+            });
 
-                                                    const PORT = process.env.PORT || 3000;
-
-                                                    app.listen(PORT, () => {
-                                                      console.log(`Server started on port ${PORT}`);
-                                                      });
-                                                      
+            export default app;
+            
