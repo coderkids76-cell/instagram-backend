@@ -1,227 +1,332 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { API_URL } from "../config"; 
 
-const ProfileIcons = {
-  Back: () => <svg aria-label="Back" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M21 17.502a.997.997 0 0 1-.707-.293L12 8.913l-8.293 8.296a1 1 0 1 1-1.414-1.414l9-9.004a1.03 1.03 0 0 1 1.414 0l9 9.004A1 1 0 0 1 21 17.502Z" transform="rotate(-90 12 12)"></path></svg>,
-  Menu: () => <svg aria-label="Settings" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><circle cx="12" cy="12" r="1.5"></circle><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle></svg>,
-  DownArrow: () => <svg aria-label="Down Chevron" fill="currentColor" height="12" viewBox="0 0 24 24" width="12"><path d="M21 17.502a.997.997 0 0 1-.707-.293L12 8.913l-8.293 8.296a1 1 0 1 1-1.414-1.414l9-9.004a1.03 1.03 0 0 1 1.414 0l9 9.004A1 1 0 0 1 21 17.502Z" transform="rotate(180 12 12)"></path></svg>,
-  GridIcon: ({isActive}) => <svg aria-label="Posts" fill={isActive ? "#007aff" : "#8e8e8e"} height="24" viewBox="0 0 24 24" width="24"><rect fill="none" height="18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" width="18" x="3" y="3"></rect><line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" x1="9.015" x2="9.015" y1="3" y2="21"></line><line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" x1="14.985" x2="14.985" y1="3" y2="21"></line><line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" x1="21" x2="3" y1="9.015" y2="9.015"></line><line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" x1="21" x2="3" y1="14.985" y2="14.985"></line></svg>,
-  ReelsIcon: ({isActive}) => <svg aria-label="Reels" fill={isActive ? "#007aff" : "#8e8e8e"} height="24" viewBox="0 0 24 24" width="24"><path d="m12.823 1 2.974 5.002h-5.58l-2.65-4.971c.206-.013.419-.022.642-.022 2.155 0 3.991-.009 4.614-.009ZM2 12.001v3.449c0 2.849.698 4.006 1.606 4.945.94.908 2.098 1.607 4.946 1.607h6.896c2.848 0 4.006-.699 4.946-1.607.908-.939 1.606-2.096 1.606-4.945V8.552c0-2.849-.698-4.006-1.606-4.945C19.454 2.7 18.296 2 15.448 2c-1.689 0-3.151.253-4.328.675l2.647 4.965h4.283c.516.29.833.81.833 1.385v5.474c0 .828-.672 1.5-1.5 1.5H6.617c-.828 0-1.5-.672-1.5-1.5V9.025c0-.575.317-1.095.833-1.385h1.233l-2.05-3.839A8.15 8.15 0 0 0 2 8.552v3.449Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>,
-};
-
-const BottomIcons = {
-  Home: () => <svg aria-label="Home" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M22 23h-6.001a1 1 0 0 1-1-1v-5.455a2.997 2.997 0 1 0-5.993 0V22a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V11.543a1.002 1.002 0 0 1 .31-.724l10-9.543a1.001 1.001 0 0 1 1.38 0l10 9.543a1.002 1.002 0 0 1 .31.724V22a1 1 0 0 1-1 1Z"></path></svg>,
-  Search: () => <svg aria-label="Search" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M18.5 10.5a8 8 0 1 1-8-8 8 8 0 0 1 8 8Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path><line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" x1="16.511" x2="21.643" y1="16.511" y2="21.643"></line></svg>,
-  Plus: () => <svg aria-label="New Post" fill="none" height="24" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" width="24"><line x1="12" x2="12" y1="5" y2="19"></line><line x1="5" x2="19" y1="12" y2="12"></line></svg>,
-  Reels: () => <svg aria-label="Reels" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="m12.823 1 2.974 5.002h-5.58l-2.65-4.971c.206-.013.419-.022.642-.022 2.155 0 3.991-.009 4.614-.009ZM2 12.001v3.449c0 2.849.698 4.006 1.606 4.945.94.908 2.098 1.607 4.946 1.607h6.896c2.848 0 4.006-.699 4.946-1.607.908-.939 1.606-2.096 1.606-4.945V8.552c0-2.849-.698-4.006-1.606-4.945C19.454 2.7 18.296 2 15.448 2c-1.689 0-3.151.253-4.328.675l2.647 4.965h4.283c.516.29.833.81.833 1.385v5.474c0 .828-.672 1.5-1.5 1.5H6.617c-.828 0-1.5-.672-1.5-1.5V9.025c0-.575.317-1.095.833-1.385h1.233l-2.05-3.839A8.15 8.15 0 0 0 2 8.552v3.449Z"></path></svg>,
+// --- أيقونات متناسقة ---
+const Icons = {
+  Back: () => <svg fill="#005bb5" height="24" viewBox="0 0 24 24" width="24"><path d="M21 17.502a.997.997 0 0 1-.707-.293L12 8.913l-8.293 8.296a1 1 0 1 1-1.414-1.414l9-9.004a1.03 1.03 0 0 1 1.414 0l9 9.004A1 1 0 0 1 21 17.502Z" transform="rotate(-90 12 12)"></path></svg>,
+  Menu: () => <svg fill="#005bb5" height="24" viewBox="0 0 24 24" width="24"><circle cx="12" cy="12" r="1.5"></circle><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle></svg>,
+  Grid: ({active}) => <svg fill={active ? "#007aff" : "#8e8e8e"} height="24" viewBox="0 0 24 24" width="24"><rect fill="none" height="18" stroke="currentColor" strokeWidth="2" width="18" x="3" y="3"></rect><line x1="9" x2="9" y1="3" y2="21" stroke="currentColor" strokeWidth="2"/><line x1="15" x2="15" y1="3" y2="21" stroke="currentColor" strokeWidth="2"/><line x1="21" x2="3" y1="9" y2="9" stroke="currentColor" strokeWidth="2"/><line x1="21" x2="3" y1="15" y2="15" stroke="currentColor" strokeWidth="2"/></svg>,
+  Reels: ({active}) => <svg fill={active ? "#007aff" : "#8e8e8e"} height="24" viewBox="0 0 24 24" width="24"><path d="m12.823 1 2.974 5.002h-5.58l-2.65-4.971c.206-.013.419-.022.642-.022 2.155 0 3.991-.009 4.614-.009ZM2 12.001v3.449c0 2.849.698 4.006 1.606 4.945.94.908 2.098 1.607 4.946 1.607h6.896c2.848 0 4.006-.699 4.946-1.607.908-.939 1.606-2.096 1.606-4.945V8.552c0-2.849-.698-4.006-1.606-4.945C19.454 2.7 18.296 2 15.448 2c-1.689 0-3.151.253-4.328.675l2.647 4.965h4.283c.516.29.833.81.833 1.385v5.474c0 .828-.672 1.5-1.5 1.5H6.617c-.828 0-1.5-.672-1.5-1.5V9.025c0-.575.317-1.095.833-1.385h1.233l-2.05-3.839A8.15 8.15 0 0 0 2 8.552v3.449Z" stroke="currentColor" strokeWidth="2"></path></svg>,
+  
+  // Bottom Nav Icons
+  Home: () => <svg fill="currentColor" height="24" width="24" viewBox="0 0 24 24"><path d="M22 23h-6.001a1 1 0 0 1-1-1v-5.455a2.997 2.997 0 1 0-5.993 0V22a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V11.543a1.002 1.002 0 0 1 .31-.724l10-9.543a1.001 1.001 0 0 1 1.38 0l10 9.543a1.002 1.002 0 0 1 .31.724V22a1 1 0 0 1-1 1Z"></path></svg>,
+  Search: () => <svg fill="currentColor" height="24" width="24" viewBox="0 0 24 24"><path d="M18.5 10.5a8 8 0 1 1-8-8 8 8 0 0 1 8 8Z" fill="none" stroke="currentColor" strokeWidth="3"></path><line x1="16.511" x2="21.643" y1="16.511" y2="21.643" stroke="currentColor" strokeWidth="3"></line></svg>,
+  Plus: () => <svg fill="none" height="24" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" width="24"><line x1="12" x2="12" y1="5" y2="19"></line><line x1="5" x2="19" y1="12" y2="12"></line></svg>,
+  Camera: () => <svg fill="white" height="16" viewBox="0 0 24 24" width="16"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z"/><path d="M20 5h-3.17L15 3H9L7.17 5H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm0 14H4V7h4.04l1.83-2h4.26l1.83 2H20v12Z"/></svg>
 };
 
 function Profile() {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+  const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("posts");
-  const isMyProfile = true; 
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
   
-  // ✅ State لتخزين المنشورات والريلز
-  const [myPosts, setMyPosts] = useState([]);
+  // بيانات التعديل
+  const [editData, setEditData] = useState({ username: "", name: "", bio: "" });
+  const [error, setError] = useState("");
 
+  const currentUser = JSON.parse(localStorage.getItem("user"));
+
+  // 1. جلب بيانات المستخدم والمنشورات
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) navigate("/");
-    
-    // جلب البيانات من الذاكرة
-    const saved = JSON.parse(localStorage.getItem("myPosts")) || [];
-    setMyPosts(saved);
-  }, []);
+    const fetchData = async () => {
+      if (!currentUser) { navigate("/"); return; }
+      try {
+        // جلب المستخدم (للحصول على أحدث البيانات)
+        const userRes = await axios.get(`${API_URL}/api/users?userId=${currentUser._id}`);
+        setUser(userRes.data);
+        setEditData({ 
+            username: userRes.data.username, 
+            name: userRes.data.username, // أو name إذا أضفته في السكيما
+            bio: userRes.data.desc || "" 
+        });
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({ title: 'Nexo Profile', url: window.location.href });
-    } else {
-      alert("Link copied to clipboard! 📋");
+        // جلب المنشورات
+        const postsRes = await axios.get(`${API_URL}/api/posts/profile/${userRes.data.username}`);
+        setPosts(postsRes.data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        
+        setLoading(false);
+      } catch (err) {
+        console.log(err);
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [currentUser?._id, navigate]);
+
+  // 2. تحديث صورة البروفايل (Base64)
+  const handleProfilePicUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onloadend = async () => {
+        try {
+          // تحديث في السيرفر
+          await axios.put(`${API_URL}/api/users/${user._id}`, {
+            userId: user._id,
+            profilePicture: reader.result
+          });
+          
+          // تحديث الواجهة فوراً
+          setUser({ ...user, profilePicture: reader.result });
+          // تحديث LocalStorage
+          const updatedLocalUser = { ...currentUser, profilePicture: reader.result };
+          localStorage.setItem("user", JSON.stringify(updatedLocalUser));
+          
+        } catch (err) {
+          console.error("Failed to update picture", err);
+        }
+      };
     }
   };
 
-  const user = {
-    username: "alex_designs",
-    name: "Alex | UI/UX Designer",
-    category: "Digital Creator",
-    bio: "Creating clean & modern web experiences. \n📍 Morocco \n👇 Check my latest work!",
-    website: "alexdesigns.com",
-    img: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=60",
-    postsCount: 152 + myPosts.length, // تحديث العداد
-    followers: "12.4K",
-    following: 345,
-    followedBy: ["sara_des", "travel_99"]
+  // 3. حفظ تعديلات البروفايل
+  const handleUpdateProfile = async () => {
+    setError("");
+    try {
+      await axios.put(`${API_URL}/api/users/${user._id}`, {
+        userId: user._id,
+        username: editData.username,
+        desc: editData.bio
+      });
+      
+      setUser({ ...user, username: editData.username, desc: editData.bio });
+      
+      // تحديث LocalStorage إذا تغير الاسم
+      if (editData.username !== currentUser.username) {
+         localStorage.setItem("user", JSON.stringify({ ...currentUser, username: editData.username }));
+      }
+
+      setIsEditing(false);
+    } catch (err) {
+      if (err.response && err.response.status === 500) {
+          setError("Username might be taken or invalid.");
+      } else {
+          setError("Something went wrong!");
+      }
+    }
   };
 
-  const staticPosts = Array.from({ length: 12 }, (_, i) => ({
-    id: i, img: `https://source.unsplash.com/random/300x300?sig=${i}`
-  }));
+  const handleLogout = () => {
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      navigate("/");
+  };
 
-  // تصفية البيانات
-  const myReels = myPosts.filter(p => p.type === "video");
-  const myImages = myPosts.filter(p => p.type === "image");
-  
-  // دمج الصور الجديدة مع القديمة
-  const finalPosts = [...myImages, ...staticPosts];
+  // --- Styles (Glassmorphism) ---
+  const glassStyle = {
+    background: "rgba(255, 255, 255, 0.65)",
+    backdropFilter: "blur(12px)",
+    WebkitBackdropFilter: "blur(12px)",
+    border: "1px solid rgba(255, 255, 255, 0.5)",
+    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.1)",
+  };
 
   const styles = {
     container: {
-      backgroundColor: "#f0f8ff",
+      background: "linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)",
       minHeight: "100vh",
-      paddingBottom: "60px",
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-      color: "#004080",
+      paddingBottom: "80px",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     },
     header: {
-      position: "sticky", top: 0, zIndex: 100, backgroundColor: "rgba(240, 248, 255, 0.95)",
-      backdropFilter: "blur(10px)", display: "flex", justifyContent: "space-between",
-      alignItems: "center", padding: "10px 16px", height: "44px", borderBottom: "1px solid #cce5ff", color: "#007aff",
+      ...glassStyle,
+      position: "sticky", top: 0, zIndex: 100,
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      padding: "10px 16px", height: "50px", borderRadius: "0 0 20px 20px", marginBottom: "15px"
     },
-    headerTitle: { fontWeight: "700", fontSize: "16px", display: "flex", alignItems: "center", gap: "5px", color: "#004080" },
-    infoSection: { padding: "20px 16px 0 16px", backgroundColor: "white" },
-    topHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "15px" },
-    profileImageContainer: { position: "relative", marginRight: "20px" },
-    profileImage: { width: "80px", height: "80px", borderRadius: "50%", border: "2px solid #007aff", padding: "2px", backgroundColor: "white" },
-    addBadge: {
-        position: "absolute", bottom: "2px", right: "2px", backgroundColor: "#007aff", color: "white",
-        borderRadius: "50%", width: "24px", height: "24px", display: "flex", justifyContent: "center",
-        alignItems: "center", fontSize: "18px", border: "2px solid white", cursor: "pointer", zIndex: 5,
+    headerTitle: { fontWeight: "700", fontSize: "16px", color: "#003366" },
+    
+    // Info Card
+    infoCard: {
+      ...glassStyle,
+      margin: "0 15px", borderRadius: "24px", padding: "20px",
+      display: "flex", flexDirection: "column", gap: "15px"
     },
-    statsContainer: { display: "flex", justifyContent: "space-around", flex: 1, textAlign: "center" },
-    statNumber: { fontWeight: "700", fontSize: "18px", color: "#004080" },
-    statLabel: { fontSize: "13px", color: "#0066cc" },
-    bioSection: { paddingBottom: "15px" },
-    fullName: { fontWeight: "700", fontSize: "14px" },
-    category: { color: "#0066cc", fontSize: "13px", marginBottom: "5px" },
-    bioText: { fontSize: "14px", whiteSpace: "pre-line", lineHeight: "1.3" },
-    websiteLink: { color: "#007aff", fontWeight: "600", textDecoration: "none" },
-    followedBy: { display: "flex", alignItems: "center", fontSize: "12px", color: "#0066cc", marginTop: "10px" },
-    followedByImgs: { display: "flex", marginRight: "5px" },
-    followedImg: { width: "18px", height: "18px", borderRadius: "50%", border: "1px solid white", marginLeft: "-6px" },
-    actionButtons: { display: "flex", gap: "6px", paddingBottom: "15px" },
-    blueButton: { flex: 1, backgroundColor: "#007aff", color: "white", border: "none", borderRadius: "8px", padding: "8px", fontWeight: "600", fontSize: "14px", cursor: "pointer" },
-    grayButton: { flex: 1, backgroundColor: "#f0f8ff", color: "#007aff", border: "1px solid #cce5ff", borderRadius: "8px", padding: "8px", fontWeight: "600", fontSize: "14px", cursor: "pointer" },
-    iconButton: { backgroundColor: "#f0f8ff", border: "1px solid #cce5ff", borderRadius: "8px", padding: "8px", display: "flex", alignItems: "center", justifyContent: "center", color: "#007aff", cursor: "pointer" },
-    tabsContainer: { display: "flex", justifyContent: "space-around", borderTop: "1px solid #cce5ff", backgroundColor: "white", marginTop: "10px" },
-    tab: { flex: 1, display: "flex", justifyContent: "center", alignItems: "center", padding: "10px 0", cursor: "pointer", color: "#8e8e8e" },
-    activeTab: { color: "#007aff", borderBottom: "2px solid #007aff" },
-    gridContainer: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "2px", backgroundColor: "white" },
-    gridItem: { aspectRatio: "1 / 1", backgroundColor: "#e1e1e1", overflow: "hidden", position: "relative" },
-    gridImage: { width: "100%", height: "100%", objectFit: "cover" },
+    topSection: { display: "flex", alignItems: "center", justifyContent: "space-between" },
+    imgContainer: { position: "relative" },
+    profileImg: {
+        width: "80px", height: "80px", borderRadius: "50%", objectFit: "cover",
+        border: "3px solid white", boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
+    },
+    addBtn: {
+        position: "absolute", bottom: "0", right: "0", background: "#007aff",
+        width: "24px", height: "24px", borderRadius: "50%", display: "flex",
+        alignItems: "center", justifyContent: "center", border: "2px solid white", cursor: "pointer"
+    },
+    stats: { display: "flex", gap: "20px", textAlign: "center", flex: 1, justifyContent: "center" },
+    statNum: { fontWeight: "800", fontSize: "18px", color: "#003366" },
+    statLabel: { fontSize: "12px", color: "#557799" },
+    
+    bioSection: {},
+    name: { fontWeight: "700", fontSize: "15px", color: "#003366" },
+    bio: { fontSize: "14px", color: "#445566", whiteSpace: "pre-line", marginTop: "4px" },
+    
+    actions: { display: "flex", gap: "10px", marginTop: "10px" },
+    editBtn: {
+        flex: 1, padding: "8px", borderRadius: "12px", border: "none",
+        background: "rgba(255,255,255,0.5)", color: "#005bb5", fontWeight: "600",
+        cursor: "pointer", fontSize: "13px", boxShadow: "0 2px 5px rgba(0,0,0,0.05)"
+    },
+
+    // Tabs
+    tabs: {
+        ...glassStyle, margin: "15px 15px", borderRadius: "16px",
+        display: "flex", justifyContent: "space-around", padding: "8px 0"
+    },
+    
+    // Grid
+    grid: {
+        display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "2px",
+        padding: "0 2px", marginBottom: "20px"
+    },
+    gridItem: { aspectRatio: "1/1", background: "rgba(255,255,255,0.3)", overflow: "hidden" },
+    gridImg: { width: "100%", height: "100%", objectFit: "cover" },
+
+    // Edit Modal
+    modalOverlay: {
+        position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+        background: "rgba(0,0,0,0.4)", backdropFilter: "blur(5px)",
+        display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000
+    },
+    modal: {
+        ...glassStyle, background: "rgba(255,255,255,0.9)", width: "85%",
+        padding: "20px", borderRadius: "24px", display: "flex", flexDirection: "column", gap: "15px"
+    },
+    input: {
+        padding: "12px", borderRadius: "12px", border: "1px solid #ddd",
+        outline: "none", fontSize: "14px", background: "#f9f9f9"
+    },
+    saveBtn: {
+        background: "linear-gradient(45deg, #007aff, #00c6ff)", color: "white",
+        padding: "12px", borderRadius: "12px", border: "none", fontWeight: "bold", cursor: "pointer"
+    },
+    
+    // Bottom Nav
     bottomNav: {
-      position: "fixed", bottom: 0, width: "100%", height: "60px", backgroundColor: "white",
-      borderTop: "1px solid #cce5ff", display: "flex", justifyContent: "space-around", alignItems: "center",
-      zIndex: 100, paddingBottom: "4px", borderRadius: "20px 20px 0 0",
-      boxShadow: "0 -4px 12px rgba(0, 122, 255, 0.1)", color: "#007aff",
+      ...glassStyle, position: "fixed", bottom: "20px", left: "15px", right: "15px",
+      height: "65px", display: "flex", justifyContent: "space-around", alignItems: "center",
+      zIndex: 1000, borderRadius: "35px", color: "#005bb5",
     },
-    profileIconNav: { width: "28px", height: "28px", borderRadius: "50%", overflow: "hidden", border: "2px solid #007aff" }
+    profileIconNav: { width: "30px", height: "30px", borderRadius: "50%", overflow: "hidden", border: "2px solid #007aff" }
   };
+
+  if (loading) return <div style={{height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f8ff"}}>Loading Profile...</div>;
 
   return (
     <div style={styles.container}>
+      
+      {/* Header */}
       <div style={styles.header}>
-        <div onClick={() => navigate("/home")} style={{cursor: "pointer"}}><ProfileIcons.Back /></div>
-        <div style={styles.headerTitle}>{user.username} <ProfileIcons.DownArrow /></div>
-        <div><ProfileIcons.Menu /></div>
+        <div onClick={() => navigate("/home")}><Icons.Back /></div>
+        <div style={styles.headerTitle}>{user?.username}</div>
+        <div onClick={handleLogout} style={{cursor: "pointer"}}><Icons.Menu /></div>
       </div>
 
-      <div style={{backgroundColor: "white"}}>
-        <div style={styles.infoSection}>
-            <div style={styles.topHeader}>
-                <div style={styles.profileImageContainer}>
-                    <img src={user.img} style={styles.profileImage} alt="profile" />
-                    <input type="file" id="storyUpload" style={{display: "none"}} onChange={(e) => alert(`Story Uploaded: ${e.target.files[0].name}`)} />
-                    {isMyProfile && (
-                        <div style={styles.addBadge} onClick={() => document.getElementById("storyUpload").click()}>+</div>
-                    )}
+      {/* Info Card */}
+      <div style={styles.infoCard}>
+        <div style={styles.topSection}>
+            <div style={styles.imgContainer}>
+                <img src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={styles.profileImg} alt="profile" />
+                <div style={styles.addBtn} onClick={() => document.getElementById("pPic").click()}>
+                    <Icons.Camera />
                 </div>
-                <div style={styles.statsContainer}>
-                    <div><div style={styles.statNumber}>{user.postsCount}</div><div style={styles.statLabel}>Posts</div></div>
-                    <div><div style={styles.statNumber}>{user.followers}</div><div style={styles.statLabel}>Followers</div></div>
-                    <div><div style={styles.statNumber}>{user.following}</div><div style={styles.statLabel}>Following</div></div>
-                </div>
+                <input type="file" id="pPic" style={{display: "none"}} accept="image/*" onChange={handleProfilePicUpload}/>
             </div>
-
-            <div style={styles.bioSection}>
-                <div style={styles.fullName}>{user.name}</div>
-                <div style={styles.category}>{user.category}</div>
-                <div style={styles.bioText}>{user.bio}</div>
-                <div>🔗 <a href={`https://${user.website}`} style={styles.websiteLink}>{user.website}</a></div>
-                <div style={styles.followedBy}>
-                    <div style={styles.followedByImgs}>
-                        <img src="https://i.pravatar.cc/50?img=1" style={styles.followedImg} />
-                        <img src="https://i.pravatar.cc/50?img=2" style={styles.followedImg} />
-                        <img src="https://i.pravatar.cc/50?img=3" style={{...styles.followedImg, marginLeft: "-8px"}} />
-                    </div>
-                    Followed by {user.followedBy[0]}, {user.followedBy[1]} and 3 others
-                </div>
-            </div>
-
-            <div style={styles.actionButtons}>
-                {isMyProfile ? (
-                    <>
-                        <button style={styles.grayButton} onClick={() => navigate("/edit-profile")}>Edit Profile</button>
-                        <button style={styles.grayButton} onClick={handleShare}>Share Profile</button>
-                    </>
-                ) : (
-                    <>
-                        <button style={styles.blueButton}>Follow</button>
-                        <button style={styles.grayButton}>Message</button>
-                        <button style={styles.grayButton} onClick={handleShare}>Share Profile</button>
-                    </>
-                )}
-                <div style={styles.iconButton}><ProfileIcons.DownArrow /></div>
+            <div style={styles.stats}>
+                <div><div style={styles.statNum}>{posts.length}</div><div style={styles.statLabel}>Posts</div></div>
+                <div><div style={styles.statNum}>{user?.followers?.length || 0}</div><div style={styles.statLabel}>Followers</div></div>
+                <div><div style={styles.statNum}>{user?.followings?.length || 0}</div><div style={styles.statLabel}>Following</div></div>
             </div>
         </div>
 
-        <div style={styles.tabsContainer}>
-            <div style={{...styles.tab, ...(activeTab === "posts" ? styles.activeTab : {})}} onClick={() => setActiveTab("posts")}>
-                <ProfileIcons.GridIcon isActive={activeTab === "posts"} />
-            </div>
-            <div style={{...styles.tab, ...(activeTab === "reels" ? styles.activeTab : {})}} onClick={() => setActiveTab("reels")}>
-                <ProfileIcons.ReelsIcon isActive={activeTab === "reels"} />
-            </div>
+        <div style={styles.bioSection}>
+            <div style={styles.name}>{user?.username}</div>
+            <div style={styles.bio}>{user?.desc || "No bio yet."}</div>
+        </div>
+
+        <div style={styles.actions}>
+            <button style={styles.editBtn} onClick={() => setIsEditing(true)}>Edit Profile</button>
+            <button style={styles.editBtn}>Share Profile</button>
         </div>
       </div>
 
-      <div style={styles.gridContainer}>
-          {/* عرض الصور */}
-          {activeTab === "posts" && finalPosts.map((post, index) => (
-              <div key={index} style={styles.gridItem}>
-                  <img src={post.url || post.img} style={styles.gridImage} alt="post" />
-              </div>
-          ))}
-
-          {/* ✅ عرض الريلز */}
-          {activeTab === "reels" && (
-              myReels.length > 0 ? (
-                  myReels.map((reel, index) => (
-                      <div key={index} style={{...styles.gridItem, aspectRatio: "9/16"}}>
-                          <video src={reel.url} style={styles.gridImage} muted />
-                          <div style={{position: "absolute", bottom: "5px", left: "5px", color: "white", fontSize: "12px", textShadow: "0 1px 2px black"}}>▶ 0</div>
-                      </div>
-                  ))
-              ) : (
-                  <div style={{gridColumn: "1 / -1", textAlign: "center", padding: "40px", color: "#888", fontSize: "14px"}}>
-                      <div style={{fontSize: "40px", marginBottom: "10px"}}>🎬</div>
-                      No Reels yet.<br/>Tap + to create one!
-                  </div>
-              )
-          )}
+      {/* Tabs */}
+      <div style={styles.tabs}>
+        <div onClick={() => setActiveTab("posts")} style={{opacity: activeTab === "posts" ? 1 : 0.5}}><Icons.Grid active={activeTab === "posts"}/></div>
+        <div onClick={() => setActiveTab("reels")} style={{opacity: activeTab === "reels" ? 1 : 0.5}}><Icons.Reels active={activeTab === "reels"}/></div>
       </div>
 
+      {/* Grid */}
+      <div style={styles.grid}>
+        {activeTab === "posts" && posts.map((post) => (
+             <div key={post._id} style={styles.gridItem}>
+                 {post.img ? (
+                     <img src={post.img} style={styles.gridImg} loading="lazy" />
+                 ) : (
+                     <div style={{width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"10px", color:"#555", textAlign:"center", padding:"5px"}}>
+                         {post.desc.substring(0,20)}...
+                     </div>
+                 )}
+             </div>
+        ))}
+        {activeTab === "reels" && (
+            <div style={{gridColumn: "1/-1", textAlign:"center", padding:"40px", color:"#555"}}>Coming Soon 🎬</div>
+        )}
+      </div>
+
+      {/* Edit Modal */}
+      {isEditing && (
+        <div style={styles.modalOverlay} onClick={() => setIsEditing(false)}>
+            <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+                <h3 style={{margin: 0, color: "#003366"}}>Edit Profile</h3>
+                
+                {error && <div style={{color: "red", fontSize: "12px"}}>{error}</div>}
+
+                <div>
+                    <label style={{fontSize: "12px", color: "#555", marginLeft: "5px"}}>Username</label>
+                    <input 
+                        style={styles.input} 
+                        value={editData.username} 
+                        onChange={(e) => setEditData({...editData, username: e.target.value})}
+                        placeholder="Username"
+                    />
+                </div>
+                
+                <div>
+                    <label style={{fontSize: "12px", color: "#555", marginLeft: "5px"}}>Bio</label>
+                    <textarea 
+                        style={{...styles.input, width: "93%", resize: "none"}} 
+                        rows="3"
+                        value={editData.bio} 
+                        onChange={(e) => setEditData({...editData, bio: e.target.value})}
+                        placeholder="Write something about you..."
+                    />
+                </div>
+
+                <button style={styles.saveBtn} onClick={handleUpdateProfile}>Save Changes</button>
+            </div>
+        </div>
+      )}
+
+      {/* Bottom Nav */}
       <div style={styles.bottomNav}>
-        <div onClick={() => navigate("/home")} style={{cursor: "pointer"}}><BottomIcons.Home /></div>
-        <div onClick={() => navigate("/search")} style={{cursor: "pointer"}}><BottomIcons.Search /></div>
-        <div style={{backgroundColor: '#007aff', borderRadius: '50%', width: '45px', height: '45px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', boxShadow: '0 4px 10px rgba(0, 122, 255, 0.4)', cursor: "pointer"}} onClick={() => navigate("/create")}>
-            <BottomIcons.Plus />
+        <div onClick={() => navigate("/home")} style={{cursor: "pointer", opacity: 0.6}}><Icons.Home /></div>
+        <div onClick={() => navigate("/search")} style={{cursor: "pointer", opacity: 0.6}}><Icons.Search /></div>
+        <div onClick={() => navigate("/create")} style={{background: 'linear-gradient(135deg, #007aff, #005bb5)', borderRadius: '50%', width: '50px', height: '50px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', boxShadow: '0 8px 20px rgba(0, 122, 255, 0.4)', cursor: "pointer", transform: "translateY(-15px)"}}>
+            <Icons.Plus />
         </div>
-        <div onClick={() => navigate("/reels")} style={{cursor: "pointer"}}><BottomIcons.Reels /></div>
+        <div onClick={() => navigate("/reels")} style={{cursor: "pointer", opacity: 0.6}}><Icons.Reels /></div>
         <div style={styles.profileIconNav}>
-            <img src={user.img} style={{width: '100%', height: '100%', objectFit: 'cover'}} alt="profile" />
+            <img src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
         </div>
       </div>
+
     </div>
   );
 }
