@@ -9,17 +9,19 @@ const PostSchema = new mongoose.Schema(
                           desc: {
                                 type: String,
                                       max: 500,
-                                          },
-                                              img: {
-                                                    type: String,
-                                                        },
-                                                            likes: {
-                                                                  type: Array,
-                                                                        default: [],
-                                                                            },
-                                                                              },
-                                                                                { timestamps: true }
-                                                                                );
+                                            default: ""
+                                                },
+                                                    img: {
+                                                          type: String, // هنا يتم حفظ الصورة (Base64)
+                                                                default: ""
+                                                                    },
+                                                                        likes: {
+                                                                              type: Array,
+                                                                                    default: [],
+                                                                                        },
+                                                                                          },
+                                                                                            { timestamps: true }
+                                                                                            );
 
-                                                                                export default mongoose.model("Post", PostSchema);
-                                                                                
+                                                                                            export default mongoose.model("Post", PostSchema);
+                                                                                            
