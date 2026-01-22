@@ -3,13 +3,19 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config"; 
 
-// --- مكون فرعي لكل منشور (لحل مشكلة جلب بيانات المستخدم لكل بوست) ---
+// --- مكون المنشور الفردي (PostItem) ---
 const PostItem = ({ post, currentUser }) => {
   const navigate = useNavigate();
-  const [user, setUser] = useState({});
-  const [isLiked, setIsLiked] = useState(post.likes.includes(currentUser._id));
-  const [likeCount, setLikeCount] = useState(post.likes.length);
-  const [isFollowing, setIsFollowing] = useState(currentUser.followings.includes(post.userId));
+  const [user, setUser] = useState(null); // نبدأ بـ null للتحقق
+  
+  // حماية ضد البيانات القديمة
+  const [isLiked, setIsLiked] = useState(post.likes?.includes(currentUser?._id) || false);
+  const [likeCount, setLikeCount] = useState(post.likes?.length || 0);
+  
+  // التحقق من وجود قائمة المتابعة لتجنب الشاشة البيضاء
+  const [isFollowing, setIsFollowing] = useState(
+    currentUser?.followings?.includes(post.userId) || false
+  );
 
   // جلب بيانات صاحب المنشور
   useEffect(() => {
@@ -24,7 +30,7 @@ const PostItem = ({ post, currentUser }) => {
     fetchUser();
   }, [post.userId]);
 
-  // التعامل مع اللايك
+  // اللايك
   const handleLike = async () => {
     try {
       await axios.put(`${API_URL}/api/posts/${post._id}/like`, { userId: currentUser._id });
@@ -35,7 +41,7 @@ const PostItem = ({ post, currentUser }) => {
     }
   };
 
-  // التعامل مع المتابعة
+  // المتابعة
   const handleFollow = async () => {
     try {
       if (isFollowing) {
@@ -45,8 +51,8 @@ const PostItem = ({ post, currentUser }) => {
       }
       setIsFollowing(!isFollowing);
       
-      // تحديث بيانات المستخدم الحالي في LocalStorage
-      const updatedUser = { ...currentUser };
+      // تحديث LocalStorage لتجنب المشاكل عند التحديث
+      const updatedUser = JSON.parse(localStorage.getItem("user"));
       if (isFollowing) {
           updatedUser.followings = updatedUser.followings.filter(id => id !== post.userId);
       } else {
@@ -59,50 +65,43 @@ const PostItem = ({ post, currentUser }) => {
     }
   };
 
-  // تحديد نسبة العرض إلى الارتفاع بناءً على نوع الصورة (بشكل تقريبي عبر CSS)
-  const getImageStyle = () => {
-    // هذه أنماط افتراضية، المتصفح سيعرض الصورة بأبعادها الأصلية مع حد أقصى
-    return {
-      width: "100%",
-      maxHeight: "566px", // أقصى ارتفاع (Landscape) كبداية، سيتمدد حسب الصورة
-      objectFit: "cover", // يملأ المكان
-      // هنا نجبر الصورة على احترام النسب المطلوبة عبر الـ Container
-    };
+  // تنسيق التاريخ
+  const formatTime = (date) => {
+      const d = new Date(date);
+      return d.toLocaleDateString("en-US", { month: 'short', day: 'numeric' });
   };
 
   return (
     <div style={styles.post}>
       {/* 1. رأس المنشور */}
       <div style={styles.postHeader}>
-        <div 
-          style={styles.userInfo} 
-          onClick={() => navigate(`/profile/${user.username}`)} // الذهاب للبروفايل
-        >
+        <div style={styles.userInfo} onClick={() => navigate(`/profile`)}> {/* يمكن توجيهها لاحقاً لبروفايل معين */}
           <img 
-            src={user.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+            src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
             style={styles.userAvatar} 
             alt="user" 
           />
-          <div style={{display: "flex", flexDirection: "column"}}>
-             <span style={{color: "#003366"}}>{user.username || "User"}</span>
-             {user.name && <span style={{fontSize: "10px", color: "#666", fontWeight: "normal"}}>{user.name}</span>}
+          <div style={{display: "flex", flexDirection: "column", marginLeft: "10px"}}>
+             <span style={styles.usernameText}>{user?.username || "Loading..."}</span>
+             {user?.name && <span style={styles.nameText}>{user.name}</span>}
           </div>
         </div>
 
-        {/* زر المتابعة (يظهر فقط إذا لم يكن حسابي) */}
-        {post.userId !== currentUser._id && (
+        {/* زر المتابعة - يظهر فقط إذا لم يكن حسابي */}
+        {user && post.userId !== currentUser._id && (
             <button 
-                onClick={handleFollow}
+                onClick={(e) => { e.stopPropagation(); handleFollow(); }}
                 style={{
-                    border: "none",
+                    border: isFollowing ? "1px solid #dbdbdb" : "none",
                     background: isFollowing ? "transparent" : "#0095f6",
                     color: isFollowing ? "#000" : "#fff",
                     fontWeight: "600",
                     fontSize: "12px",
-                    padding: "5px 12px",
+                    padding: "6px 14px",
                     borderRadius: "8px",
                     cursor: "pointer",
-                    border: isFollowing ? "1px solid #dbdbdb" : "none"
+                    marginLeft: "auto",
+                    transition: "all 0.2s"
                 }}
             >
                 {isFollowing ? "Following" : "Follow"}
@@ -110,51 +109,57 @@ const PostItem = ({ post, currentUser }) => {
         )}
       </div>
 
-      {/* 2. محتوى النص (يظهر فوق الصورة أو لوحده) */}
+      {/* 2. نص المنشور (فوق الصورة) */}
       {post.desc && (
           <div style={styles.postContentText}>
               {post.desc}
           </div>
       )}
 
-      {/* 3. الصورة (تظهر فقط إذا وجدت) */}
+      {/* 3. الصورة (بالمقاسات المطلوبة) */}
       {post.img && (
-        <div style={styles.imageContainer}> {/* حاوية للتحكم بالمقاسات */}
-             <img src={post.img} style={{width: "100%", height: "auto", display: "block"}} alt="post" />
+        <div style={styles.imageContainer}>
+             <img src={post.img} style={styles.postImage} alt="post" />
         </div>
       )}
       
-      {/* 4. الأزرار والتفاعل */}
+      {/* 4. الأزرار */}
       <div style={styles.postActions}>
         <div style={styles.leftActions}>
-          <div onClick={handleLike} style={{cursor: "pointer", color: isLiked ? "#ed4956" : "inherit"}}>
+          <div onClick={handleLike} style={{cursor: "pointer", color: isLiked ? "#ed4956" : "inherit", display:"flex", alignItems:"center"}}>
             {isLiked ? <Icons.HeartFilled /> : <Icons.Heart />}
           </div>
-          <div style={{cursor: "pointer"}} onClick={() => alert("Comments coming soon!")}><Icons.Comment /></div>
-          <div style={{cursor: "pointer"}} onClick={() => navigator.share?.({ title: 'Nexo Post', text: post.desc, url: window.location.href })}><Icons.Share /></div>
+          <div style={{cursor: "pointer"}} onClick={() => alert("Comments feature coming soon!")}><Icons.Comment /></div>
+          <div style={{cursor: "pointer"}} onClick={() => navigator.share?.({ title: 'Nexo', text: post.desc, url: window.location.href })}><Icons.Share /></div>
         </div>
-        <div style={{cursor: "pointer"}} onClick={() => alert("Saved!")}><Icons.Save /></div>
+        <div style={{cursor: "pointer"}} onClick={() => alert("Post Saved!")}><Icons.Save /></div>
       </div>
       
       <div style={styles.likesCount}>{likeCount} likes</div>
-      <div style={styles.time}>{new Date(post.createdAt).toDateString()}</div>
+      <div style={styles.time}>{formatTime(post.createdAt)}</div>
     </div>
   );
 };
 
 
-// --- المكون الرئيسي ---
+// --- الصفحة الرئيسية ---
 function Home() {
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // قراءة المستخدم بأمان
   const user = JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
+    // إذا لم يكن هناك مستخدم، التوجيه لصفحة الدخول فوراً
+    if (!user) {
+        navigate("/");
+        return;
+    }
+
     const fetchPosts = async () => {
       try {
-        if (!user) { navigate("/"); return; }
-        // جلب التايم لاين
         const res = await axios.get(`${API_URL}/api/posts/timeline/${user._id}`);
         setPosts(res.data.sort((p1, p2) => new Date(p2.createdAt) - new Date(p1.createdAt)));
         setLoading(false);
@@ -164,14 +169,16 @@ function Home() {
       }
     };
     fetchPosts();
-  }, [user?._id, navigate]);
+  }, [user?._id, navigate]); // الاعتماد على ID فقط لتجنب التكرار
 
-  // Stories (Dummy Data)
+  // Stories (بيانات تجريبية)
   const stories = [
     { id: 0, user: "You", img: user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png", isUser: true },
-    { id: 1, user: "Nexo", img: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=150" },
-    { id: 2, user: "Travel", img: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150" },
+    { id: 1, user: "nexo_team", img: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=150" },
+    { id: 2, user: "travel_99", img: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?w=150" },
   ];
+
+  if (!user) return null; // منع عرض أي شيء إذا لم يسجل الدخول
 
   return (
     <div style={styles.container}>
@@ -199,10 +206,11 @@ function Home() {
 
       {/* Feed */}
       {loading ? (
-          <div style={styles.emptyState}>Wait a moment... 🚀</div>
+          <div style={styles.emptyState}>Loading moments... ✨</div>
       ) : posts.length === 0 ? (
           <div style={styles.emptyState}>
               <p>Welcome to Nexo!</p>
+              <p style={{fontSize:"13px", marginTop:"5px", color:"#777"}}>Follow people to see their posts here.</p>
               <button onClick={() => navigate("/create")} style={styles.createBtn}>Create First Post</button>
           </div>
       ) : (
@@ -282,27 +290,30 @@ const styles = {
       ...glassStyle, marginBottom: "20px", borderRadius: "24px", paddingBottom: "10px", overflow: "hidden", margin: "0 10px 20px 10px",
     },
     postHeader: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 15px" },
-    userInfo: { display: "flex", alignItems: "center", gap: "10px", fontWeight: "700", fontSize: "14px", cursor: "pointer" },
-    userAvatar: { width: '36px', height: '36px', borderRadius: '50%', objectFit: "cover", border: "1px solid rgba(0,0,0,0.1)" },
+    userInfo: { display: "flex", alignItems: "center", cursor: "pointer" },
+    userAvatar: { width: '38px', height: '38px', borderRadius: '50%', objectFit: "cover", border: "1px solid rgba(0,0,0,0.1)" },
+    usernameText: { fontSize: "14px", fontWeight: "700", color: "#003366" },
+    nameText: { fontSize: "11px", color: "#666", marginTop: "1px" },
     
-    // ✅ تحسين تنسيق النص (فوق الصورة)
     postContentText: {
-        padding: "0 15px 10px 15px",
-        fontSize: "14px",
-        lineHeight: "1.5",
-        color: "#333",
-        whiteSpace: "pre-line", // للحفاظ على الأسطر الجديدة
-        textAlign: "left",
+        padding: "0 15px 12px 15px", fontSize: "15px", lineHeight: "1.5", color: "#222",
+        whiteSpace: "pre-line", textAlign: "left",
     },
     
     // ✅ ضبط مقاسات الصور (Container)
     imageContainer: {
         width: "100%",
-        backgroundColor: "#f0f0f0", // لون خلفية أثناء التحميل
+        backgroundColor: "#f5f5f5",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         overflow: "hidden",
+    },
+    postImage: {
+        width: "100%",
+        height: "auto",
+        maxHeight: "1350px", // يسمح بالطول الكامل (4:5)
+        objectFit: "cover",
     },
 
     postActions: { padding: "12px 15px 0 15px", display: "flex", justifyContent: "space-between", color: "#005bb5" },
@@ -322,7 +333,7 @@ const styles = {
     },
     profileIconNav: { width: "30px", height: "30px", borderRadius: "50%", overflow: "hidden", border: "2px solid #007aff", cursor: "pointer" },
     emptyState: { textAlign: "center", padding: "60px 20px", color: "#555", fontSize: "16px" },
-    createBtn: { marginTop: "20px", padding: "10px 20px", background: "#007aff", color: "white", border: "none", borderRadius: "20px" }
+    createBtn: { marginTop: "20px", padding: "12px 24px", background: "#007aff", color: "white", border: "none", borderRadius: "20px", fontWeight:"bold" }
 };
 
 export default Home;
