@@ -78,8 +78,10 @@ function Profile() {
           const updatedLocalUser = { ...currentUser, profilePicture: reader.result };
           localStorage.setItem("user", JSON.stringify(updatedLocalUser));
           
+          alert("Profile Picture Updated! ✨");
         } catch (err) {
           console.error("Failed to update picture", err);
+          alert("Failed to update picture. Make sure it's not too big.");
         }
       };
     }
@@ -103,11 +105,13 @@ function Profile() {
       }
 
       setIsEditing(false);
+      alert("Profile updated successfully! 🎉");
     } catch (err) {
-      if (err.response && err.response.status === 500) {
-          setError("Username might be taken or invalid.");
+      // ✅ التعامل مع خطأ تكرار الاسم القادم من السيرفر
+      if (err.response && err.response.data && err.response.data.message) {
+          setError(err.response.data.message); // سيظهر: Username is already taken!
       } else {
-          setError("Something went wrong!");
+          setError("Failed to update profile. Try again.");
       }
     }
   };
@@ -232,6 +236,7 @@ function Profile() {
       <div style={styles.infoCard}>
         <div style={styles.topSection}>
             <div style={styles.imgContainer}>
+                {/* عرض الصورة بشكل ذكي (يدعم base64 والروابط العادية) */}
                 <img src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={styles.profileImg} alt="profile" />
                 <div style={styles.addBtn} onClick={() => document.getElementById("pPic").click()}>
                     <Icons.Camera />
@@ -266,11 +271,12 @@ function Profile() {
       <div style={styles.grid}>
         {activeTab === "posts" && posts.map((post) => (
              <div key={post._id} style={styles.gridItem}>
+                 {/* شرط مهم: إذا كان هناك صورة اعرضها، وإلا اعرض جزءاً من النص */}
                  {post.img ? (
                      <img src={post.img} style={styles.gridImg} loading="lazy" />
                  ) : (
                      <div style={{width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"10px", color:"#555", textAlign:"center", padding:"5px"}}>
-                         {post.desc.substring(0,20)}...
+                         {post.desc ? post.desc.substring(0,20) + "..." : "No Image"}
                      </div>
                  )}
              </div>
@@ -286,7 +292,7 @@ function Profile() {
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
                 <h3 style={{margin: 0, color: "#003366"}}>Edit Profile</h3>
                 
-                {error && <div style={{color: "red", fontSize: "12px"}}>{error}</div>}
+                {error && <div style={{color: "red", fontSize: "12px", background:"#fee", padding:"5px", borderRadius:"5px"}}>{error}</div>}
 
                 <div>
                     <label style={{fontSize: "12px", color: "#555", marginLeft: "5px"}}>Username</label>

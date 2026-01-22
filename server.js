@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import postRoutes from "./routes/posts.js";
+import userRoutes from "./routes/users.js"; // ✅ تأكد من وجود هذا الملف
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,7 +18,7 @@ connectDB();
 
 const app = express();
 
-// ✅ إعدادات CORS
+// ✅ إعداد CORS للسماح للواجهة بالاتصال
 app.use(cors({
   origin: true,
     credentials: true,
@@ -25,22 +26,18 @@ app.use(cors({
         allowedHeaders: ["Content-Type", "Authorization"]
         }));
 
-        // مجلد الصور (لن نعتمد عليه في الرفع بعد الآن، لكن نتركه للعرض)
-        app.use("/images", express.static(path.join(__dirname, "public/images")));
-
         app.use(helmet());
 
-        // ✅✅✅ زيادة حجم البيانات المسموح به لرفع الصور كـ Base64
+        // ✅✅✅ الحل السحري: زيادة حجم البيانات المسموح به (للصور)
         app.use(express.json({ limit: "50mb" })); 
         app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
         app.use(morgan("dev"));
 
-        // (تم إزالة كود Multer لأننا لن نستخدمه في الرفع بعد الآن)
-
         // المسارات
         app.use("/api/auth", authRoutes);
         app.use("/api/posts", postRoutes);
+        app.use("/api/users", userRoutes); // ✅ مسار تعديل البروفايل
 
         app.get("/", (req, res) => {
           res.send("✅ Instagram Backend is Running!");
