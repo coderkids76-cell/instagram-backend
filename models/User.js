@@ -2,38 +2,71 @@ import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema(
   {
-    username: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-    },
-    password: {
-      type: String,
-      required: true,
-    },
-    profilePic: {
-      type: String,
-      default: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
-    },
-    followers: {
-      type: Array,
-      default: [],
-    },
-    following: {
-      type: Array,
-      default: [],
-    },
-    bio: {
-      type: String,
-      default: "",
-    },
-  },
-  { timestamps: true }
-);
+      username: {
+            type: String,
+                  require: true,
+                        min: 3,
+                              max: 20,
+                                    unique: true,
+                                        },
+                                            // ✅ أضفنا هذا الحقل الجديد للإسم
+                                                name: {
+                                                      type: String,
+                                                            max: 50,
+                                                                  default: "", 
+                                                                      },
+                                                                          email: {
+                                                                                type: String,
+                                                                                      required: true,
+                                                                                            max: 50,
+                                                                                                  unique: true,
+                                                                                                      },
+                                                                                                          password: {
+                                                                                                                type: String,
+                                                                                                                      required: true,
+                                                                                                                            min: 6,
+                                                                                                                                },
+                                                                                                                                    profilePicture: {
+                                                                                                                                          type: String,
+                                                                                                                                                default: "",
+                                                                                                                                                    },
+                                                                                                                                                        coverPicture: {
+                                                                                                                                                              type: String,
+                                                                                                                                                                    default: "",
+                                                                                                                                                                        },
+                                                                                                                                                                            followers: {
+                                                                                                                                                                                  type: Array,
+                                                                                                                                                                                        default: [],
+                                                                                                                                                                                            },
+                                                                                                                                                                                                followings: {
+                                                                                                                                                                                                      type: Array,
+                                                                                                                                                                                                            default: [],
+                                                                                                                                                                                                                },
+                                                                                                                                                                                                                    isAdmin: {
+                                                                                                                                                                                                                          type: Boolean,
+                                                                                                                                                                                                                                default: false,
+                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                        // ✅ هذا الحقل للبايو (Bio)
+                                                                                                                                                                                                                                            desc: {
+                                                                                                                                                                                                                                                  type: String,
+                                                                                                                                                                                                                                                        max: 150,
+                                                                                                                                                                                                                                                              default: "", 
+                                                                                                                                                                                                                                                                  },
+                                                                                                                                                                                                                                                                      city: {
+                                                                                                                                                                                                                                                                            type: String,
+                                                                                                                                                                                                                                                                                  max: 50,
+                                                                                                                                                                                                                                                                                      },
+                                                                                                                                                                                                                                                                                          from: {
+                                                                                                                                                                                                                                                                                                type: String,
+                                                                                                                                                                                                                                                                                                      max: 50,
+                                                                                                                                                                                                                                                                                                          },
+                                                                                                                                                                                                                                                                                                              relationship: {
+                                                                                                                                                                                                                                                                                                                    type: Number,
+                                                                                                                                                                                                                                                                                                                          enum: [1, 2, 3],
+                                                                                                                                                                                                                                                                                                                              },
+                                                                                                                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                                                                                                                                  { timestamps: true }
+                                                                                                                                                                                                                                                                                                                                  );
 
-export default mongoose.model("User", UserSchema);
+                                                                                                                                                                                                                                                                                                                                  export default mongoose.model("User", UserSchema);
+                                                                                                                                                                                                                                                                                                                                  
