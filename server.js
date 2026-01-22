@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import postRoutes from "./routes/posts.js";
-import userRoutes from "./routes/users.js"; // ✅ تأكد من وجود هذا الملف
+import userRoutes from "./routes/users.js"; // 👈 تأكد من وجود هذا السطر
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,7 +18,6 @@ connectDB();
 
 const app = express();
 
-// ✅ إعداد CORS للسماح للواجهة بالاتصال
 app.use(cors({
   origin: true,
     credentials: true,
@@ -28,16 +27,15 @@ app.use(cors({
 
         app.use(helmet());
 
-        // ✅✅✅ الحل السحري: زيادة حجم البيانات المسموح به (للصور)
+        // السماح ببيانات كبيرة (50mb)
         app.use(express.json({ limit: "50mb" })); 
         app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
         app.use(morgan("dev"));
 
-        // المسارات
         app.use("/api/auth", authRoutes);
         app.use("/api/posts", postRoutes);
-        app.use("/api/users", userRoutes); // ✅ مسار تعديل البروفايل
+        app.use("/api/users", userRoutes); // 👈 وتأكد من وجود هذا السطر
 
         app.get("/", (req, res) => {
           res.send("✅ Instagram Backend is Running!");

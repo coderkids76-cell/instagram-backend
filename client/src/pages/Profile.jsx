@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config"; 
 
-// --- أيقونات متناسقة ---
+// --- أيقونات متناسقة (Glassmorphism Theme) ---
 const Icons = {
   Back: () => <svg fill="#005bb5" height="24" viewBox="0 0 24 24" width="24"><path d="M21 17.502a.997.997 0 0 1-.707-.293L12 8.913l-8.293 8.296a1 1 0 1 1-1.414-1.414l9-9.004a1.03 1.03 0 0 1 1.414 0l9 9.004A1 1 0 0 1 21 17.502Z" transform="rotate(-90 12 12)"></path></svg>,
   Menu: () => <svg fill="#005bb5" height="24" viewBox="0 0 24 24" width="24"><circle cx="12" cy="12" r="1.5"></circle><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle></svg>,
@@ -31,21 +31,46 @@ function Profile() {
 
   const currentUser = JSON.parse(localStorage.getItem("user"));
 
+  // ✅ دالة سحرية لضغط الصورة (لحل مشكلة Vercel Payload)
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 500; // البروفايل لا يحتاج دقة عالية جداً
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+          
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // تحويل الصورة لنص مضغوط (Quality 0.7)
+          resolve(canvas.toDataURL("image/jpeg", 0.7));
+        };
+      };
+    });
+  };
+
   // 1. جلب بيانات المستخدم والمنشورات
   useEffect(() => {
     const fetchData = async () => {
       if (!currentUser) { navigate("/"); return; }
       try {
-        // جلب المستخدم (للحصول على أحدث البيانات)
+        // جلب المستخدم (للحصول على أحدث البيانات من السيرفر)
         const userRes = await axios.get(`${API_URL}/api/users?userId=${currentUser._id}`);
         setUser(userRes.data);
         setEditData({ 
             username: userRes.data.username, 
-            name: userRes.data.username, // أو name إذا أضفته في السكيما
+            name: userRes.data.username, 
             bio: userRes.data.desc || "" 
         });
 
-        // جلب المنشورات
+        // جلب المنشورات الخاصة بالمستخدم
         const postsRes = await axios.get(`${API_URL}/api/posts/profile/${userRes.data.username}`);
         setPosts(postsRes.data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
         
@@ -58,36 +83,35 @@ function Profile() {
     fetchData();
   }, [currentUser?._id, navigate]);
 
-  // 2. تحديث صورة البروفايل (Base64)
+  // 2. تحديث صورة البروفايل (مع الضغط)
   const handleProfilePicUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onloadend = async () => {
-        try {
-          // تحديث في السيرفر
-          await axios.put(`${API_URL}/api/users/${user._id}`, {
-            userId: user._id,
-            profilePicture: reader.result
-          });
-          
-          // تحديث الواجهة فوراً
-          setUser({ ...user, profilePicture: reader.result });
-          // تحديث LocalStorage
-          const updatedLocalUser = { ...currentUser, profilePicture: reader.result };
-          localStorage.setItem("user", JSON.stringify(updatedLocalUser));
-          
-          alert("Profile Picture Updated! ✨");
-        } catch (err) {
-          console.error("Failed to update picture", err);
-          alert("Failed to update picture. Make sure it's not too big.");
-        }
-      };
+      try {
+        const compressedBase64 = await compressImage(file); // ضغط الصورة أولاً
+        
+        // إرسال للسيرفر
+        await axios.put(`${API_URL}/api/users/${user._id}`, {
+          userId: user._id,
+          profilePicture: compressedBase64
+        });
+        
+        // تحديث الواجهة فوراً
+        setUser({ ...user, profilePicture: compressedBase64 });
+        
+        // تحديث LocalStorage
+        const updatedLocalUser = { ...currentUser, profilePicture: compressedBase64 };
+        localStorage.setItem("user", JSON.stringify(updatedLocalUser));
+        
+        alert("Profile Picture Updated! ✨");
+      } catch (err) {
+        console.error("Failed to update picture", err);
+        alert(`Failed: ${err.response?.data?.message || err.message}`);
+      }
     }
   };
 
-  // 3. حفظ تعديلات البروفايل
+  // 3. حفظ تعديلات البروفايل (نصوص)
   const handleUpdateProfile = async () => {
     setError("");
     try {
@@ -107,7 +131,6 @@ function Profile() {
       setIsEditing(false);
       alert("Profile updated successfully! 🎉");
     } catch (err) {
-      // ✅ التعامل مع خطأ تكرار الاسم القادم من السيرفر
       if (err.response && err.response.data && err.response.data.message) {
           setError(err.response.data.message); // سيظهر: Username is already taken!
       } else {
@@ -122,7 +145,7 @@ function Profile() {
       navigate("/");
   };
 
-  // --- Styles (Glassmorphism) ---
+  // --- Styles (Glassmorphism & Layout) ---
   const glassStyle = {
     background: "rgba(255, 255, 255, 0.65)",
     backdropFilter: "blur(12px)",
@@ -211,7 +234,7 @@ function Profile() {
         padding: "12px", borderRadius: "12px", border: "none", fontWeight: "bold", cursor: "pointer"
     },
     
-    // Bottom Nav
+    // Bottom Nav (Floating Glass)
     bottomNav: {
       ...glassStyle, position: "fixed", bottom: "20px", left: "15px", right: "15px",
       height: "65px", display: "flex", justifyContent: "space-around", alignItems: "center",
@@ -236,7 +259,7 @@ function Profile() {
       <div style={styles.infoCard}>
         <div style={styles.topSection}>
             <div style={styles.imgContainer}>
-                {/* عرض الصورة بشكل ذكي (يدعم base64 والروابط العادية) */}
+                {/* عرض الصورة مع دعم الصور الافتراضية */}
                 <img src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={styles.profileImg} alt="profile" />
                 <div style={styles.addBtn} onClick={() => document.getElementById("pPic").click()}>
                     <Icons.Camera />
@@ -267,16 +290,16 @@ function Profile() {
         <div onClick={() => setActiveTab("reels")} style={{opacity: activeTab === "reels" ? 1 : 0.5}}><Icons.Reels active={activeTab === "reels"}/></div>
       </div>
 
-      {/* Grid */}
+      {/* Grid Posts */}
       <div style={styles.grid}>
         {activeTab === "posts" && posts.map((post) => (
              <div key={post._id} style={styles.gridItem}>
-                 {/* شرط مهم: إذا كان هناك صورة اعرضها، وإلا اعرض جزءاً من النص */}
+                 {/* عرض الصورة إذا وجدت، وإلا عرض جزء من النص */}
                  {post.img ? (
-                     <img src={post.img} style={styles.gridImg} loading="lazy" />
+                     <img src={post.img} style={styles.gridImg} loading="lazy" alt="post" />
                  ) : (
-                     <div style={{width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"10px", color:"#555", textAlign:"center", padding:"5px"}}>
-                         {post.desc ? post.desc.substring(0,20) + "..." : "No Image"}
+                     <div style={{width:"100%", height:"100%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"10px", color:"#555", textAlign:"center", padding:"5px", background:"#eee"}}>
+                         {post.desc ? post.desc.substring(0,25) + "..." : "Text Post"}
                      </div>
                  )}
              </div>
@@ -329,7 +352,7 @@ function Profile() {
         </div>
         <div onClick={() => navigate("/reels")} style={{cursor: "pointer", opacity: 0.6}}><Icons.Reels /></div>
         <div style={styles.profileIconNav}>
-            <img src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+            <img src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={{width: '100%', height: '100%', objectFit: 'cover'}} alt="nav-profile" />
         </div>
       </div>
 

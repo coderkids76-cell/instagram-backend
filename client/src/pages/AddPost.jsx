@@ -18,18 +18,51 @@ function AddPost() {
   const [caption, setCaption] = useState("");
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [imageBase64, setImageBase64] = useState(""); // لتخزين كود الصورة
+  const [imageBase64, setImageBase64] = useState(""); 
 
-  // ✅ دالة سحرية لتحويل الملف إلى نص (Base64)
-  const handleMediaChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  // ✅ دالة ضغط الصورة (الحل لمشكلة Vercel)
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onloadend = () => {
-        setPreview(reader.result); // للعرض
-        setImageBase64(reader.result); // للإرسال
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_WIDTH = 800; // تصغير العرض إلى 800 بكسل
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+          
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // ضغط الجودة إلى 70%
+          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
+          resolve(compressedDataUrl);
+        };
       };
+    });
+  };
+
+  const handleMediaChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type.startsWith("image")) {
+        // ضغط الصورة قبل العرض
+        const compressed = await compressImage(file);
+        setPreview(compressed);
+        setImageBase64(compressed);
+      } else {
+        // الفيديو لا نضغطه حالياً (قد يفشل لو كبير)
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onloadend = () => {
+          setPreview(reader.result);
+          setImageBase64(reader.result);
+        };
+      }
     }
   };
 
@@ -47,32 +80,25 @@ function AddPost() {
     setLoading(true);
     const user = JSON.parse(localStorage.getItem("user"));
 
-    // ✅ نرسل الصورة كـ نص (img) مباشرة مع البيانات
     const newPost = {
       userId: user._id,
       desc: caption,
-      img: imageBase64 // هنا نرسل الصورة المحولة
+      img: imageBase64 
     };
 
     try {
-        // إرسال المنشور للسيرفر مباشرة (بدون خطوة upload منفصلة)
         await axios.post(`${API_URL}/api/posts`, newPost);
-
-        if (isReelMode) {
-            navigate("/profile");
-        } else {
-            navigate("/home");
-        }
-
+        navigate(isReelMode ? "/profile" : "/home");
     } catch (err) {
         console.error(err);
-        alert("Failed to share post.");
+        // عرض الخطأ الحقيقي بدلاً من رسالة عامة
+        alert(`Error: ${err.response?.data?.message || err.message}`);
     } finally {
         setLoading(false);
     }
   };
 
-  // ... (نفس الستايلات السابقة بدون تغيير)
+  // Styles (Glassmorphism)
   const glassStyle = {
     background: "rgba(255, 255, 255, 0.7)",
     backdropFilter: "blur(20px)",
@@ -82,55 +108,25 @@ function AddPost() {
 
   const styles = {
     container: {
-      minHeight: "100vh",
-      display: "flex",
-      flexDirection: "column",
-      background: "linear-gradient(135deg, #f0f8ff 0%, #e6f0ff 50%, #f5faff 100%)",
-      fontFamily: "sans-serif",
+      minHeight: "100vh", display: "flex", flexDirection: "column",
+      background: "linear-gradient(135deg, #f0f8ff 0%, #e6f0ff 50%, #f5faff 100%)", fontFamily: "sans-serif",
     },
     header: {
-      ...glassStyle,
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      padding: "16px 20px",
-      borderRadius: "0 0 20px 20px",
+      ...glassStyle, display: "flex", justifyContent: "space-between", alignItems: "center",
+      padding: "16px 20px", borderRadius: "0 0 20px 20px",
     },
     shareBtn: {
       background: loading ? "#ccc" : "linear-gradient(45deg, #007aff, #00c6ff)",
-      border: "none",
-      color: "white",
-      fontWeight: "600",
-      padding: "8px 16px",
-      borderRadius: "20px",
-      display: "flex",
-      alignItems: "center",
-      cursor: loading ? "not-allowed" : "pointer",
+      border: "none", color: "white", fontWeight: "600", padding: "8px 16px",
+      borderRadius: "20px", display: "flex", alignItems: "center", cursor: loading ? "not-allowed" : "pointer",
     },
     uploadBox: {
-      ...glassStyle,
-      width: "100%",
-      aspectRatio: preview ? (isReelMode ? "9/16" : "auto") : "2/1", 
-      minHeight: "150px",
-      borderRadius: "24px",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      cursor: "pointer",
-      marginTop: "20px",
-      overflow: "hidden",
-      position: "relative",
-      transition: "all 0.3s ease"
+      ...glassStyle, width: "100%", aspectRatio: preview ? (isReelMode ? "9/16" : "auto") : "2/1", 
+      minHeight: "150px", borderRadius: "24px", display: "flex", justifyContent: "center", alignItems: "center",
+      cursor: "pointer", marginTop: "20px", overflow: "hidden", position: "relative", transition: "all 0.3s ease"
     },
-    mediaPreview: {
-      width: "100%",
-      height: "100%",
-      objectFit: "contain",
-      maxHeight: "400px"
-    },
-    removeBtn: {
-        position: "absolute", top: "10px", right: "10px", backgroundColor: "rgba(255,255,255,0.8)", borderRadius: "50%", padding: "5px", cursor: "pointer", zIndex: 10
-    }
+    mediaPreview: { width: "100%", height: "100%", objectFit: "contain", maxHeight: "400px" },
+    removeBtn: { position: "absolute", top: "10px", right: "10px", backgroundColor: "rgba(255,255,255,0.8)", borderRadius: "50%", padding: "5px", cursor: "pointer", zIndex: 10 }
   };
 
   return (
@@ -146,15 +142,9 @@ function AddPost() {
       <div style={{padding: "20px"}}>
         <textarea 
             style={{...glassStyle, width: "100%", padding: "15px", marginBottom: "20px", borderRadius: "15px", border: "none", outline: "none", fontSize: "16px"}} 
-            placeholder="What's on your mind?" 
-            rows="4"
-            value={caption}
-            onChange={(e) => setCaption(e.target.value)}
+            placeholder="What's on your mind?" rows="4" value={caption} onChange={(e) => setCaption(e.target.value)}
         />
-        <div 
-            style={styles.uploadBox}
-            onClick={() => document.getElementById("fileInput").click()}
-        >
+        <div style={styles.uploadBox} onClick={() => document.getElementById("fileInput").click()}>
             {preview ? (
                 <>
                     <div style={styles.removeBtn} onClick={removeMedia}><ModernIcons.Remove /></div>
@@ -166,13 +156,7 @@ function AddPost() {
                     <p style={{fontWeight: "600", marginTop: "10px"}}>Add Photo</p>
                 </div>
             )}
-            <input 
-                type="file" 
-                id="fileInput" 
-                style={{display: "none"}} 
-                accept="image/*"
-                onChange={handleMediaChange}
-            />
+            <input type="file" id="fileInput" style={{display: "none"}} accept="image/*" onChange={handleMediaChange} />
         </div>
       </div>
     </div>
