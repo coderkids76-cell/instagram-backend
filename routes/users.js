@@ -144,5 +144,23 @@ router.get("/friends/:userId", async (req, res) => {
     res.status(500).json(err);
   }
 });
+// 7. البحث عن مستخدمين (Search Users)
+router.get("/search/:query", async (req, res) => {
+  const query = req.params.query;
+    try {
+        // يبحث عن أي مستخدم يحتوي اسمه أو اليوزرنام على النص المكتوب (غير حساس لحالة الأحرف)
+            const users = await User.find({
+                  $or: [
+                          { username: { $regex: query, $options: "i" } },
+                                  { name: { $regex: query, $options: "i" } }
+                                        ]
+                                            }).limit(10); // نكتفي بأول 10 نتائج
+                                                
+                                                    res.status(200).json(users);
+                                                      } catch (err) {
+                                                          res.status(500).json(err);
+                                                            }
+                                                            });
+                                                            
 
 export default router;

@@ -1,194 +1,140 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { API_URL } from "../config";
 
-// --- أيقونات SVG حديثة ونظيفة ---
-const ModernIcons = {
-  Search: () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{color: '#004080', opacity: 0.7}}>
-      <circle cx="11" cy="11" r="8"></circle>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-    </svg>
-  )
+// --- أيقونات (الأزرق الناعم) ---
+const Icons = {
+  Home: () => <svg fill="none" stroke="#007aff" strokeWidth="2" height="26" viewBox="0 0 24 24" width="26"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>,
+  SearchFilled: () => <svg fill="#007aff" height="28" viewBox="0 0 24 24" width="28"><path d="M21.71 20.29l-3.68-3.68A8.963 8.963 0 0 0 20 11c0-4.96-4.04-9-9-9s-9 4.04-9 9 4.04 9 9 9c2.12 0 4.07-.74 5.61-1.97l3.68 3.68c.2.19.45.29.71.29s.51-.1.71-.29c.39-.39.39-1.03 0-1.42zM4 11c0-3.86 3.14-7 7-7s7 3.14 7 7c0 1.92-.78 3.66-2.04 4.93-.01.01-.02.01-.02.01-.01.01-.01.01-.01.02A6.98 6.98 0 0 1 11 18c-3.86 0-7-3.14-7-7z"></path></svg>,
+  SearchIcon: () => <svg fill="#8e8e8e" height="16" viewBox="0 0 24 24" width="16"><path d="M19 10.5A8.5 8.5 0 1 1 10.5 2a8.5 8.5 0 0 1 0 17c1.99 0 3.82-.7 5.27-1.87l4.35 4.36a1 1 0 0 0 1.41-1.41l-4.36-4.35A8.46 8.46 0 0 1 19 10.5z"></path></svg>,
+  Plus: () => <svg fill="none" height="28" stroke="#007aff" strokeWidth="3" viewBox="0 0 24 24" width="28"><line x1="12" x2="12" y1="5" y2="19"></line><line x1="5" x2="19" y1="12" y2="12"></line></svg>,
+  Reels: () => <svg fill="none" stroke="#007aff" strokeWidth="2" height="26" viewBox="0 0 24 24" width="26"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>,
+  Close: () => <svg fill="#333" height="20" viewBox="0 0 24 24" width="20"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>,
 };
 
-const BottomIcons = {
-  Home: () => <svg aria-label="Home" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M22 23h-6.001a1 1 0 0 1-1-1v-5.455a2.997 2.997 0 1 0-5.993 0V22a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V11.543a1.002 1.002 0 0 1 .31-.724l10-9.543a1.001 1.001 0 0 1 1.38 0l10 9.543a1.002 1.002 0 0 1 .31.724V22a1 1 0 0 1-1 1Z"></path></svg>,
-  Search: () => <svg aria-label="Search" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="M18.5 10.5a8 8 0 1 1-8-8 8 8 0 0 1 8 8Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path><line fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" x1="16.511" x2="21.643" y1="16.511" y2="21.643"></line></svg>,
-  Plus: () => <svg aria-label="New Post" fill="none" height="24" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24" width="24"><line x1="12" x2="12" y1="5" y2="19"></line><line x1="5" x2="19" y1="12" y2="12"></line></svg>,
-  Reels: () => <svg aria-label="Reels" fill="currentColor" height="24" viewBox="0 0 24 24" width="24"><path d="m12.823 1 2.974 5.002h-5.58l-2.65-4.971c.206-.013.419-.022.642-.022 2.155 0 3.991-.009 4.614-.009ZM2 12.001v3.449c0 2.849.698 4.006 1.606 4.945.94.908 2.098 1.607 4.946 1.607h6.896c2.848 0 4.006-.699 4.946-1.607.908-.939 1.606-2.096 1.606-4.945V8.552c0-2.849-.698-4.006-1.606-4.945C19.454 2.7 18.296 2 15.448 2c-1.689 0-3.151.253-4.328.675l2.647 4.965h4.283c.516.29.833.81.833 1.385v5.474c0 .828-.672 1.5-1.5 1.5H6.617c-.828 0-1.5-.672-1.5-1.5V9.025c0-.575.317-1.095.833-1.385h1.233l-2.05-3.839A8.15 8.15 0 0 0 2 8.552v3.449Z"></path></svg>,
-};
-
-function Search() {
+export default function Search() {
   const navigate = useNavigate();
-  const [searchText, setSearchText] = useState("");
+  const [query, setQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [explorePosts, setExplorePosts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  
+  const user = JSON.parse(localStorage.getItem("user"));
 
-  const exploreImages = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    img: `https://source.unsplash.com/random/400x${i % 3 === 0 ? 600 : 400}?sig=${i + 100}`,
-  }));
+  // 1. جلب منشورات عشوائية (Explore) عند فتح الصفحة
+  useEffect(() => {
+    const fetchExplorePosts = async () => {
+      try {
+        // في الحقيقة، يجب أن يكون هناك Endpoint خاص بالـ Explore
+        // لكننا سنستخدم التايم لاين مؤقتاً ونخلطه عشوائياً
+        const res = await axios.get(`${API_URL}/api/posts/timeline/${user._id}`);
+        // خلط المصفوفة عشوائياً (Shuffle)
+        const shuffled = res.data.sort(() => 0.5 - Math.random());
+        setExplorePosts(shuffled);
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    fetchExplorePosts();
+  }, [user._id]);
 
-  const tags = ["Travel", "Architecture", "Decor", "Art", "Food", "Style", "Music", "DIY"];
+  // 2. البحث عن مستخدمين عند الكتابة
+  useEffect(() => {
+    const searchUsers = async () => {
+      if (query.length > 1) {
+        setLoading(true);
+        try {
+          const res = await axios.get(`${API_URL}/api/users/search/${query}`);
+          setSearchResults(res.data);
+        } catch (err) {
+          console.log(err);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setSearchResults([]);
+      }
+    };
+    
+    // تأخير بسيط لتقليل الطلبات للسيرفر (Debounce)
+    const timeoutId = setTimeout(() => {
+        searchUsers();
+    }, 500);
 
-  const glassStyle = {
-    background: "rgba(255, 255, 255, 0.65)",
-    backdropFilter: "blur(16px)",
-    WebkitBackdropFilter: "blur(16px)",
-    border: "1px solid rgba(255, 255, 255, 0.5)",
-    boxShadow: "0 4px 30px rgba(0, 0, 0, 0.05)",
-  };
-
-  const styles = {
-    container: {
-      background: "linear-gradient(135deg, #f0f8ff 0%, #e6f0ff 50%, #f5faff 100%)",
-      minHeight: "100vh",
-      paddingBottom: "60px",
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    },
-    searchHeader: {
-        ...glassStyle,
-        position: "sticky",
-        top: 0,
-        zIndex: 10,
-        padding: "10px 16px 15px 16px",
-        borderBottom: "1px solid rgba(255,255,255,0.3)",
-        borderRadius: "0 0 24px 24px", 
-    },
-    searchBar: {
-        display: "flex",
-        alignItems: "center",
-        backgroundColor: "rgba(255, 255, 255, 0.5)", 
-        borderRadius: "16px",
-        padding: "10px 14px",
-        gap: "10px",
-        border: "1px solid rgba(255, 255, 255, 0.8)",
-        boxShadow: "inset 0 2px 4px rgba(0,0,0,0.02)", 
-    },
-    input: {
-        border: "none",
-        backgroundColor: "transparent",
-        width: "100%",
-        fontSize: "15px",
-        outline: "none",
-        color: "#004080",
-        fontWeight: "500",
-    },
-    tagsContainer: {
-        display: "flex",
-        gap: "8px",
-        paddingTop: "12px",
-        overflowX: "auto",
-        scrollbarWidth: "none",
-    },
-    tag: {
-        ...glassStyle,
-        padding: "6px 18px",
-        borderRadius: "20px",
-        fontWeight: "600",
-        fontSize: "13px",
-        whiteSpace: "nowrap",
-        color: "#005bb5", 
-        cursor: "pointer",
-        background: "rgba(255, 255, 255, 0.4)", 
-    },
-    masonryGrid: {
-        columnCount: 3, 
-        columnGap: "6px",
-        padding: "10px 8px",
-    },
-    gridItem: {
-        marginBottom: "6px",
-        breakInside: "avoid",
-        overflow: "hidden",
-        borderRadius: "12px", 
-        boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-        position: "relative",
-    },
-    image: {
-        width: "100%",
-        height: "auto",
-        display: "block",
-    },
-    bottomNav: {
-      position: "fixed",
-      bottom: 0,
-      width: "100%",
-      height: "60px",
-      backgroundColor: "rgba(255, 255, 255, 0.8)", 
-      backdropFilter: "blur(20px)",
-      borderTop: "1px solid rgba(255,255,255,0.5)",
-      display: "flex",
-      justifyContent: "space-around",
-      alignItems: "center",
-      zIndex: 100,
-      paddingBottom: "4px",
-      borderRadius: "20px 20px 0 0",
-      boxShadow: "0 -4px 12px rgba(0, 122, 255, 0.1)",
-      color: "#007aff",
-    },
-    profileIcon: {
-        width: "28px",
-        height: "28px",
-        borderRadius: "50%",
-        overflow: "hidden",
-        cursor: "pointer",
-        border: "2px solid #007aff",
-    }
-  };
+    return () => clearTimeout(timeoutId);
+  }, [query]);
 
   return (
     <div style={styles.container}>
       
-      {/* Search Header */}
+      {/* --- Search Bar Header --- */}
       <div style={styles.searchHeader}>
-        <div style={styles.searchBar}>
-            <ModernIcons.Search />
+        <div style={styles.searchBox}>
+            <div style={{paddingLeft: "10px", display: "flex"}}><Icons.SearchIcon /></div>
             <input 
-                type="text" 
-                placeholder="Search everything..." 
-                style={styles.input}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
+                style={styles.searchInput} 
+                placeholder="Search" 
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
             />
-        </div>
-        <div style={styles.tagsContainer}>
-            {tags.map((tag, i) => (
-                <div key={i} style={styles.tag}>{tag}</div>
-            ))}
+            {query && (
+                <div onClick={() => setQuery("")} style={{paddingRight: "10px", cursor: "pointer", display: "flex"}}>
+                    <Icons.Close />
+                </div>
+            )}
         </div>
       </div>
 
-      {/* Grid */}
-      <div style={styles.masonryGrid}>
-        {exploreImages.map((item) => (
-            <div key={item.id} style={styles.gridItem}>
-                <img src={item.img} style={styles.image} alt="explore" />
+      {/* --- Content Area --- */}
+      <div style={styles.content}>
+        
+        {/* A. عرض نتائج البحث إذا كان هناك نص */}
+        {query.length > 0 ? (
+            <div style={styles.resultsList}>
+                {loading ? (
+                    <div style={{textAlign: "center", padding: "20px", color: "#666"}}>Searching...</div>
+                ) : searchResults.length === 0 ? (
+                    <div style={{textAlign: "center", padding: "20px", color: "#666"}}>No users found.</div>
+                ) : (
+                    searchResults.map((result) => (
+                        <div key={result._id} style={styles.userRow} onClick={() => navigate(`/profile`)}>
+                            <img 
+                                src={result.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                                style={styles.userAvatar} 
+                                alt="user"
+                            />
+                            <div style={styles.userInfo}>
+                                <div style={styles.username}>{result.username}</div>
+                                <div style={styles.name}>{result.name || "Nexo User"}</div>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
-        ))}
+        ) : (
+            // B. عرض شبكة الاستكشاف (Explore Grid) إذا كان البحث فارغاً
+            <div style={styles.gridContainer}>
+                {explorePosts.map((post) => {
+                    if (!post.img) return null; // إخفاء المنشورات النصية
+                    return (
+                        <div key={post._id} style={styles.gridItem}>
+                            <img src={post.img} style={styles.gridImage} alt="explore" loading="lazy" />
+                        </div>
+                    );
+                })}
+            </div>
+        )}
       </div>
 
-      {/* Bottom Nav */}
+      {/* --- Bottom Nav --- */}
       <div style={styles.bottomNav}>
-        <div onClick={() => navigate("/home")} style={{cursor: "pointer", color: "#8e8e8e"}}><BottomIcons.Home /></div>
-        
-        <div style={{color: "#007aff"}}><BottomIcons.Search /></div>
-        
-        <div 
-            style={{backgroundColor: '#007aff', borderRadius: '50%', width: '45px', height: '45px', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', boxShadow: '0 4px 10px rgba(0, 122, 255, 0.4)', cursor: "pointer"}}
-            onClick={() => navigate("/create")} 
-        >
-            <BottomIcons.Plus />
-        </div>
-        
-        {/* ✅ الإصلاح: إضافة onClick للذهاب إلى الريلز */}
-        <div onClick={() => navigate("/reels")} style={{cursor: "pointer", color: "#8e8e8e"}}>
-            <BottomIcons.Reels />
-        </div>
-        
-        <div 
-            style={{...styles.profileIcon, border: "none"}}
-            onClick={() => navigate("/profile")}
-        >
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=60" style={{width: '100%', height: '100%', objectFit: 'cover'}} alt="profile" />
+        <div onClick={() => navigate("/home")} style={{opacity: 0.6}}><Icons.Home /></div>
+        <div onClick={() => navigate("/search")}><Icons.SearchFilled /></div>
+        <div onClick={() => navigate("/create")} style={styles.plusBtn}><Icons.Plus /></div>
+        <div onClick={() => navigate("/reels")} style={{opacity: 0.6}}><Icons.Reels /></div>
+        <div onClick={() => navigate("/profile")} style={styles.profileIconNav}>
+            <img src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
         </div>
       </div>
 
@@ -196,4 +142,119 @@ function Search() {
   );
 }
 
-export default Search;
+// --- Styles (Glassmorphism + Grid Layout) ---
+const glassStyle = {
+    background: "rgba(255, 255, 255, 0.65)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    border: "1px solid rgba(255, 255, 255, 0.5)",
+    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.05)",
+};
+
+const styles = {
+    container: {
+      background: "linear-gradient(180deg, #E2D1F9 0%, #dbeafe 100%)",
+      minHeight: "100vh",
+      paddingBottom: "80px",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    },
+    
+    // Search Header
+    searchHeader: {
+        padding: "10px 15px",
+        position: "sticky",
+        top: 0,
+        zIndex: 10,
+        background: "rgba(255,255,255,0.3)", // خلفية شفافة جداً للهيدر
+        backdropFilter: "blur(10px)",
+    },
+    searchBox: {
+        display: "flex",
+        alignItems: "center",
+        backgroundColor: "rgba(255, 255, 255, 0.6)",
+        borderRadius: "12px",
+        height: "40px",
+        boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+    },
+    searchInput: {
+        flex: 1,
+        border: "none",
+        background: "transparent",
+        padding: "0 10px",
+        fontSize: "15px",
+        outline: "none",
+        color: "#333",
+    },
+
+    // Content
+    content: {
+        paddingTop: "5px",
+    },
+
+    // Explore Grid
+    gridContainer: {
+        display: "grid",
+        gridTemplateColumns: "repeat(3, 1fr)", // 3 أعمدة
+        gap: "2px", // مسافة صغيرة جداً مثل انستقرام
+        paddingBottom: "20px",
+    },
+    gridItem: {
+        aspectRatio: "1 / 1", // مربع
+        position: "relative",
+        overflow: "hidden",
+        backgroundColor: "rgba(255,255,255,0.2)",
+    },
+    gridImage: {
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+    },
+
+    // Search Results List
+    resultsList: {
+        padding: "10px",
+    },
+    userRow: {
+        ...glassStyle,
+        display: "flex",
+        alignItems: "center",
+        padding: "10px",
+        marginBottom: "10px",
+        borderRadius: "15px",
+        cursor: "pointer",
+    },
+    userAvatar: {
+        width: "45px",
+        height: "45px",
+        borderRadius: "50%",
+        objectFit: "cover",
+        border: "1px solid rgba(0,0,0,0.1)",
+    },
+    userInfo: {
+        marginLeft: "12px",
+        display: "flex",
+        flexDirection: "column",
+    },
+    username: {
+        fontWeight: "700",
+        fontSize: "14px",
+        color: "#003366",
+    },
+    name: {
+        fontSize: "12px",
+        color: "#666",
+    },
+
+    // Bottom Nav
+    bottomNav: {
+      ...glassStyle, position: "fixed", bottom: "20px", left: "15px", right: "15px",
+      height: "65px", display: "flex", justifyContent: "space-around", alignItems: "center",
+      zIndex: 1000, borderRadius: "35px", color: "#007aff",
+    },
+    plusBtn: {
+        background: 'linear-gradient(135deg, #007aff, #005bb5)', borderRadius: '50%', width: '50px', height: '50px',
+        display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white',
+        boxShadow: '0 8px 20px rgba(0, 122, 255, 0.35)', cursor: "pointer", transform: "translateY(-15px)"
+    },
+    profileIconNav: { width: "30px", height: "30px", borderRadius: "50%", overflow: "hidden", border: "2px solid #007aff", cursor: "pointer" }
+};
