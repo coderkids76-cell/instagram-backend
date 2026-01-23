@@ -1,31 +1,31 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import Home from "./pages/Home";
-import Profile from "./pages/Profile";
-import EditProfile from "./pages/EditProfile";
-import AddPost from "./pages/AddPost";
+import Profile from "./pages/Profile"; // تأكد من المسار
 import Search from "./pages/Search";
-import Reels from "./pages/Reels";
-import Messages from "./pages/Messages"; // ✅ استيراد صفحة الرسائل
+import Create from "./pages/Create"; // افترض أنك أنشأته
+// استيراد باقي الصفحات...
 
 function App() {
-  return (
-      <BrowserRouter>
-            <Routes>
-                    <Route path="/" element={<Login />} />
-                            <Route path="/signup" element={<Signup />} />
-                                    <Route path="/home" element={<Home />} />
-                                            <Route path="/profile" element={<Profile />} />
-                                                    <Route path="/edit-profile" element={<EditProfile />} />
-                                                            <Route path="/create" element={<AddPost />} />
-                                                                    <Route path="/search" element={<Search />} />
-                                                                            <Route path="/reels" element={<Reels />} />
-                                                                                    <Route path="/messages" element={<Messages />} /> {/* ✅ المسار الجديد */}
-                                                                                          </Routes>
-                                                                                              </BrowserRouter>
-                                                                                                );
-                                                                                                }
+  const user = JSON.parse(localStorage.getItem("user"));
 
-                                                                                                export default App;
-                                                                                                
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={user ? <Navigate to="/home" /> : <Login />} />
+        <Route path="/signup" element={user ? <Navigate to="/home" /> : <Signup />} />
+        <Route path="/home" element={user ? <Home /> : <Navigate to="/" />} />
+        
+        {/* ✅ التحديث هنا: مساران للبروفايل */}
+        <Route path="/profile" element={user ? <Profile /> : <Navigate to="/" />} />
+        <Route path="/profile/:username" element={user ? <Profile /> : <Navigate to="/" />} />
+        
+        <Route path="/search" element={user ? <Search /> : <Navigate to="/" />} />
+        {/* <Route path="/create" element={<Create />} /> */}
+      </Routes>
+    </BrowserRouter>
+  );
+}
+
+export default App;
