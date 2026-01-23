@@ -1,168 +1,64 @@
-import { useContext, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom"; 
-import { API_URL } from "../config"; // تأكد من المسار
 import axios from "axios";
-
-// --- تصميم Glassmorphism ---
-const styles = {
-  container: {
-    width: "100vw",
-    height: "100vh",
-    background: "linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)", // نفس خلفية التطبيق
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    position: "relative",
-    overflow: "hidden",
-  },
-  // دوائر خلفية لإبراز الزجاج
-  blob1: {
-    position: "absolute", top: "-10%", left: "-10%", width: "300px", height: "300px",
-    background: "#a1c4fd", borderRadius: "50%", filter: "blur(50px)", opacity: 0.6
-  },
-  blob2: {
-    position: "absolute", bottom: "-10%", right: "-10%", width: "300px", height: "300px",
-    background: "#c2e9fb", borderRadius: "50%", filter: "blur(50px)", opacity: 0.6
-  },
-  
-  // البطاقة الزجاجية
-  card: {
-    width: "85%",
-    maxWidth: "400px",
-    padding: "40px 30px",
-    background: "rgba(255, 255, 255, 0.25)", // زجاج شفاف
-    backdropFilter: "blur(20px)",
-    WebkitBackdropFilter: "blur(20px)",
-    border: "1px solid rgba(255, 255, 255, 0.4)",
-    borderRadius: "30px",
-    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.1)",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    textAlign: "center",
-  },
-  
-  logo: {
-    fontFamily: "'Billabong', cursive",
-    fontSize: "50px",
-    color: "#007aff",
-    marginBottom: "30px",
-    textShadow: "0 2px 4px rgba(0,0,0,0.1)"
-  },
-  
-  form: {
-    width: "100%",
-    display: "flex",
-    flexDirection: "column",
-    gap: "15px",
-  },
-  
-  input: {
-    width: "100%",
-    padding: "15px",
-    borderRadius: "15px",
-    border: "1px solid rgba(255, 255, 255, 0.5)",
-    background: "rgba(255, 255, 255, 0.5)",
-    outline: "none",
-    fontSize: "14px",
-    color: "#333",
-    boxSizing: "border-box",
-    transition: "all 0.3s ease",
-  },
-  
-  button: {
-    width: "100%",
-    padding: "15px",
-    borderRadius: "15px",
-    border: "none",
-    background: "linear-gradient(45deg, #007aff, #00c6ff)",
-    color: "white",
-    fontWeight: "bold",
-    fontSize: "16px",
-    cursor: "pointer",
-    marginTop: "10px",
-    boxShadow: "0 4px 15px rgba(0, 122, 255, 0.3)",
-    transition: "transform 0.2s",
-  },
-  
-  link: {
-    marginTop: "20px",
-    fontSize: "13px",
-    color: "#555",
-    textDecoration: "none",
-  },
-  
-  signupText: {
-    color: "#007aff",
-    fontWeight: "bold",
-    cursor: "pointer",
-  },
-  
-  error: {
-    color: "#ff3b30",
-    fontSize: "13px",
-    marginBottom: "10px",
-    background: "rgba(255, 59, 48, 0.1)",
-    padding: "8px",
-    borderRadius: "8px",
-    width: "100%",
-  }
-};
+import { API_URL } from "../config"; 
 
 export default function Login() {
-  const email = useRef();
-  const password = useRef();
+  const emailRef = useRef();
+  const passwordRef = useRef();
   const navigate = useNavigate();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleClick = async (e) => {
-    // ✅✅✅ هذا هو الحل للمشكلة الأولى!
-    e.preventDefault(); // يمنع تحديث الصفحة
-    
+  const handleLogin = async (e) => {
+    e.preventDefault(); 
     setLoading(true);
     setError(null);
 
     try {
-      // إرسال طلب تسجيل الدخول
-      const res = await axios.post(API_URL + "/api/auth/login", {
-        email: email.current.value,
-        password: password.current.value,
+      const res = await axios.post(`${API_URL}/api/auth/login`, {
+        email: emailRef.current.value,
+        password: passwordRef.current.value,
       });
 
-      // ✅ حفظ المستخدم في LocalStorage (مهم جداً لكي تعمل Home.jsx)
+      // حفظ البيانات
       localStorage.setItem("user", JSON.stringify(res.data));
-      localStorage.setItem("token", res.data.accessToken || "dummy_token"); // إذا كنت تستخدم التوكن
+      localStorage.setItem("token", res.data.accessToken || "dummy_token");
 
-      // ✅ التوجيه إلى الصفحة الرئيسية
       navigate("/home");
-      
     } catch (err) {
       console.log(err);
       setLoading(false);
-      setError("Wrong email or password! Please try again.");
+      setError("Incorrect username or password.");
     }
+  };
+
+  const handleForgotPassword = () => {
+      // هنا يمكنك إضافة منطق استعادة كلمة المرور لاحقاً
+      alert("Reset password feature coming soon! 🔒");
   };
 
   return (
     <div style={styles.container}>
-      {/* خلفية جمالية */}
-      <div style={styles.blob1}></div>
-      <div style={styles.blob2}></div>
+      
+      {/* 1. Header (مكان اللغة سابقاً) */}
+      <div style={styles.topBar}>
+        <span style={{opacity: 0.6, fontSize: "12px", fontWeight: "600"}}>English (US)</span>
+      </div>
 
-      <div style={styles.card}>
+      {/* 2. Center Content (Logo + Form) */}
+      <div style={styles.centerContent}>
+        {/* Logo */}
         <div style={styles.logo}>Nexo</div>
-        
-        {error && <div style={styles.error}>{error}</div>}
 
-        <form style={styles.form} onSubmit={handleClick}>
+        {/* Form */}
+        <form style={styles.form} onSubmit={handleLogin}>
           <input
-            placeholder="Email"
-            type="email"
+            placeholder="Username, email or mobile"
+            type="text" // غيرناه لـ text ليقبل اليوزرنام أيضاً
             required
             style={styles.input}
-            ref={email}
+            ref={emailRef}
           />
           <input
             placeholder="Password"
@@ -170,21 +66,165 @@ export default function Login() {
             required
             minLength="6"
             style={styles.input}
-            ref={password}
+            ref={passwordRef}
           />
           
-          <button style={styles.button} type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Log In"}
+          {error && <div style={styles.errorMsg}>{error}</div>}
+
+          <button style={styles.loginBtn} type="submit" disabled={loading}>
+            {loading ? "Logging in..." : "Log in"}
           </button>
         </form>
 
-        <div style={styles.link}>
-          Don't have an account?{" "}
-          <Link to="/register" style={{textDecoration: "none"}}>
-             <span style={styles.signupText}>Sign up</span>
-          </Link>
+        {/* Forgot Password */}
+        <div style={styles.forgotPass} onClick={handleForgotPassword}>
+            Forgot password?
         </div>
       </div>
+
+      {/* 3. Bottom Content (Create Account + Footer) */}
+      <div style={styles.bottomContent}>
+        <button style={styles.createBtn} onClick={() => navigate("/register")}>
+            Create new account
+        </button>
+        
+        <div style={styles.footer}>
+            <div style={{fontWeight: "bold", fontSize: "14px", color: "#555"}}>Nexo</div>
+            <div style={{fontSize: "10px", color: "#777"}}>Social Network Project</div>
+        </div>
+      </div>
+
     </div>
   );
 }
+
+// --- Styles (Glassmorphism + Instagram Layout) ---
+const styles = {
+  container: {
+    width: "100vw",
+    height: "100vh", // يملأ الشاشة
+    // نفس تدرج Home.jsx
+    background: "linear-gradient(180deg, #E2D1F9 0%, #dbeafe 100%)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "space-between", // توزيع العناصر (فوق - وسط - تحت)
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    overflow: "hidden",
+  },
+
+  // --- Top Section ---
+  topBar: {
+    width: "100%",
+    padding: "15px",
+    display: "flex",
+    justifyContent: "center",
+    color: "#004080",
+  },
+
+  // --- Center Section ---
+  centerContent: {
+    width: "85%",
+    maxWidth: "350px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    marginBottom: "40px", // رفعه قليلاً للأعلى
+  },
+  
+  logo: {
+    fontFamily: "'Billabong', cursive",
+    fontSize: "60px", // حجم كبير مثل انستقرام
+    color: "#007aff",
+    marginBottom: "40px",
+    textShadow: "0 4px 10px rgba(0, 122, 255, 0.2)",
+  },
+
+  form: {
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    gap: "15px",
+  },
+
+  input: {
+    width: "100%",
+    padding: "16px",
+    borderRadius: "12px",
+    border: "1px solid rgba(255, 255, 255, 0.6)", // حدود شفافة
+    background: "rgba(255, 255, 255, 0.45)", // خلفية زجاجية للحقل
+    backdropFilter: "blur(5px)",
+    outline: "none",
+    fontSize: "14px",
+    color: "#333",
+    boxSizing: "border-box",
+    transition: "all 0.3s",
+    boxShadow: "0 2px 5px rgba(0,0,0,0.02)"
+  },
+
+  loginBtn: {
+    width: "100%",
+    padding: "14px",
+    borderRadius: "25px", // دائري بالكامل (Pill shape)
+    border: "none",
+    background: "#007aff", // أزرق Nexo
+    color: "white",
+    fontWeight: "600",
+    fontSize: "15px",
+    cursor: "pointer",
+    marginTop: "10px",
+    boxShadow: "0 4px 15px rgba(0, 122, 255, 0.3)",
+    transition: "transform 0.2s",
+  },
+
+  errorMsg: {
+    color: "#e74c3c",
+    fontSize: "13px",
+    textAlign: "center",
+    background: "rgba(231, 76, 60, 0.1)",
+    padding: "8px",
+    borderRadius: "8px",
+  },
+
+  forgotPass: {
+    marginTop: "20px",
+    fontSize: "14px",
+    color: "#004080",
+    fontWeight: "500",
+    cursor: "pointer",
+    textDecoration: "none",
+  },
+
+  // --- Bottom Section ---
+  bottomContent: {
+    width: "100%",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    paddingBottom: "20px",
+  },
+
+  createBtn: {
+    width: "85%",
+    maxWidth: "350px",
+    padding: "12px",
+    borderRadius: "25px",
+    background: "transparent", // شفاف
+    border: "1.5px solid #007aff", // حدود زرقاء
+    color: "#007aff",
+    fontWeight: "600",
+    fontSize: "14px",
+    cursor: "pointer",
+    marginBottom: "30px", // مسافة قبل الفوتر
+    backdropFilter: "blur(5px)",
+  },
+
+  footer: {
+    textAlign: "center",
+    opacity: 0.8,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    gap: "2px"
+  }
+};
