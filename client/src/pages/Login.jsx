@@ -1,12 +1,12 @@
 import { useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; 
+import { useNavigate } from "react-router-dom"; 
 import axios from "axios";
 import { API_URL } from "../config"; 
 
 export default function Login() {
   const emailRef = useRef();
   const passwordRef = useRef();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); // أداة التنقل
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -21,7 +21,6 @@ export default function Login() {
         password: passwordRef.current.value,
       });
 
-      // حفظ البيانات
       localStorage.setItem("user", JSON.stringify(res.data));
       localStorage.setItem("token", res.data.accessToken || "dummy_token");
 
@@ -33,29 +32,25 @@ export default function Login() {
     }
   };
 
-  const handleForgotPassword = () => {
-      // هنا يمكنك إضافة منطق استعادة كلمة المرور لاحقاً
-      alert("Reset password feature coming soon! 🔒");
-  };
-
   return (
     <div style={styles.container}>
       
-      {/* 1. Header (مكان اللغة سابقاً) */}
-      <div style={styles.topBar}>
-        <span style={{opacity: 0.6, fontSize: "12px", fontWeight: "600"}}>English (US)</span>
-      </div>
-
-      {/* 2. Center Content (Logo + Form) */}
+      {/* 1. Center Content (Logo + Slogan + Form) */}
       <div style={styles.centerContent}>
+        
         {/* Logo */}
         <div style={styles.logo}>Nexo</div>
+        
+        {/* ✅ الجملة المثيرة للانتباه (Slogan) */}
+        <div style={styles.slogan}>
+          Connect freely, share uniquely.
+        </div>
 
         {/* Form */}
         <form style={styles.form} onSubmit={handleLogin}>
           <input
             placeholder="Username, email or mobile"
-            type="text" // غيرناه لـ text ليقبل اليوزرنام أيضاً
+            type="text"
             required
             style={styles.input}
             ref={emailRef}
@@ -77,20 +72,21 @@ export default function Login() {
         </form>
 
         {/* Forgot Password */}
-        <div style={styles.forgotPass} onClick={handleForgotPassword}>
+        <div style={styles.forgotPass} onClick={() => alert("Reset feature coming soon!")}>
             Forgot password?
         </div>
       </div>
 
-      {/* 3. Bottom Content (Create Account + Footer) */}
+      {/* 2. Bottom Content (Create Account) */}
       <div style={styles.bottomContent}>
-        <button style={styles.createBtn} onClick={() => navigate("/register")}>
+        {/* ✅ تصحيح الانتقال: تأكدنا أن يذهب لصفحة signup */}
+        <button style={styles.createBtn} onClick={() => navigate("/signup")}>
             Create new account
         </button>
         
         <div style={styles.footer}>
-            <div style={{fontWeight: "bold", fontSize: "14px", color: "#555"}}>Nexo</div>
-            <div style={{fontSize: "10px", color: "#777"}}>Social Network Project</div>
+            <div style={{fontWeight: "bold", fontSize: "16px", color: "#444", marginBottom:"2px"}}>Nexo</div>
+            <div style={{fontSize: "11px", color: "#666"}}>Social Network Project</div>
         </div>
       </div>
 
@@ -98,28 +94,20 @@ export default function Login() {
   );
 }
 
-// --- Styles (Glassmorphism + Instagram Layout) ---
+// --- Styles (Glassmorphism + Layout) ---
 const styles = {
   container: {
     width: "100vw",
-    height: "100vh", // يملأ الشاشة
-    // نفس تدرج Home.jsx
+    height: "100vh",
+    // خلفية متدرجة متناسقة مع Home.jsx
     background: "linear-gradient(180deg, #E2D1F9 0%, #dbeafe 100%)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    justifyContent: "space-between", // توزيع العناصر (فوق - وسط - تحت)
+    justifyContent: "center", // توسيط المحتوى عمودياً
     fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     overflow: "hidden",
-  },
-
-  // --- Top Section ---
-  topBar: {
-    width: "100%",
-    padding: "15px",
-    display: "flex",
-    justifyContent: "center",
-    color: "#004080",
+    position: "relative"
   },
 
   // --- Center Section ---
@@ -129,15 +117,27 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    marginBottom: "40px", // رفعه قليلاً للأعلى
+    flex: 1, // يأخذ المساحة المتاحة ليدفع الفوتر للأسفل
+    justifyContent: "center", // يوسط نفسه في المساحة المتاحة
   },
   
   logo: {
     fontFamily: "'Billabong', cursive",
-    fontSize: "60px", // حجم كبير مثل انستقرام
+    fontSize: "70px", // حجم كبير وجذاب
     color: "#007aff",
-    marginBottom: "40px",
-    textShadow: "0 4px 10px rgba(0, 122, 255, 0.2)",
+    marginBottom: "5px", // مسافة صغيرة بين اللوجو والشعار
+    textShadow: "0 4px 10px rgba(0, 122, 255, 0.15)",
+  },
+
+  // ✅ ستايل الجملة الجديدة
+  slogan: {
+    fontSize: "15px",
+    fontWeight: "600",
+    color: "#5c87b2", // لون أزرق رمادي متناسق مع الخلفية
+    marginBottom: "35px",
+    textAlign: "center",
+    letterSpacing: "0.5px",
+    fontFamily: "'Segoe UI', sans-serif"
   },
 
   form: {
@@ -151,9 +151,9 @@ const styles = {
     width: "100%",
     padding: "16px",
     borderRadius: "12px",
-    border: "1px solid rgba(255, 255, 255, 0.6)", // حدود شفافة
-    background: "rgba(255, 255, 255, 0.45)", // خلفية زجاجية للحقل
-    backdropFilter: "blur(5px)",
+    border: "1px solid rgba(255, 255, 255, 0.6)",
+    background: "rgba(255, 255, 255, 0.6)", // زجاجي أكثر وضوحاً
+    backdropFilter: "blur(10px)",
     outline: "none",
     fontSize: "14px",
     color: "#333",
@@ -165,9 +165,9 @@ const styles = {
   loginBtn: {
     width: "100%",
     padding: "14px",
-    borderRadius: "25px", // دائري بالكامل (Pill shape)
+    borderRadius: "25px",
     border: "none",
-    background: "#007aff", // أزرق Nexo
+    background: "#007aff",
     color: "white",
     fontWeight: "600",
     fontSize: "15px",
@@ -201,7 +201,7 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    paddingBottom: "20px",
+    paddingBottom: "30px", // مسافة من الأسفل
   },
 
   createBtn: {
@@ -209,22 +209,21 @@ const styles = {
     maxWidth: "350px",
     padding: "12px",
     borderRadius: "25px",
-    background: "transparent", // شفاف
-    border: "1.5px solid #007aff", // حدود زرقاء
+    background: "rgba(255, 255, 255, 0.3)", // خلفية شفافة خفيفة
+    border: "1.5px solid #007aff",
     color: "#007aff",
     fontWeight: "600",
     fontSize: "14px",
     cursor: "pointer",
-    marginBottom: "30px", // مسافة قبل الفوتر
+    marginBottom: "40px",
     backdropFilter: "blur(5px)",
   },
 
   footer: {
     textAlign: "center",
-    opacity: 0.8,
+    opacity: 0.9,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    gap: "2px"
   }
 };
