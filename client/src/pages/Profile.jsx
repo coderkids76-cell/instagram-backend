@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config"; 
 
-// --- الأيقونات (تصميم Nexo الأزرق) ---
+// --- Icons (Nexo Blue Theme) ---
 const Icons = {
   Back: () => <svg fill="#007aff" height="26" viewBox="0 0 24 24" width="26"><path d="M21 17.502a.997.997 0 0 1-.707-.293L12 8.913l-8.293 8.296a1 1 0 1 1-1.414-1.414l9-9.004a1.03 1.03 0 0 1 1.414 0l9 9.004A1 1 0 0 1 21 17.502Z" transform="rotate(-90 12 12)"></path></svg>,
   Menu: () => <svg fill="#007aff" height="26" viewBox="0 0 24 24" width="26"><circle cx="12" cy="12" r="1.5"></circle><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle></svg>,
@@ -19,7 +19,7 @@ const Icons = {
 
 function Profile() {
   const navigate = useNavigate();
-  // ✅ الخطوة الأهم: جلب اسم المستخدم من الرابط
+  // Get username from URL (if visiting someone else)
   const { username } = useParams(); 
   
   const [user, setUser] = useState(null);
@@ -34,7 +34,7 @@ function Profile() {
 
   const currentUser = JSON.parse(localStorage.getItem("user"));
 
-  // دالة ضغط الصورة (للتعديل)
+  // Image Compression Helper
   const compressImage = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -61,23 +61,21 @@ function Profile() {
       if (!currentUser) { navigate("/"); return; }
       try {
         setLoading(true);
-        // ✅ منطق تحديد المستخدم:
-        // 1. إذا كان الرابط يحتوي على username -> ابحث عنه.
-        // 2. إذا لم يكن (أو كان فارغاً) -> هات بياناتي أنا (currentUser).
+        // Determine which user to fetch: from URL (search) or current logged in user (me)
         const query = username ? `username=${username}` : `userId=${currentUser._id}`;
         
         const userRes = await axios.get(`${API_URL}/api/users?${query}`);
         const fetchedUser = userRes.data;
         setUser(fetchedUser);
 
-        // ✅ التحقق من المتابعة: هل أنا (currentUser) أتابع هذا الشخص (fetchedUser)؟
+        // Check if I am following this user
         if (currentUser.followings.includes(fetchedUser._id)) {
             setIsFollowing(true);
         } else {
             setIsFollowing(false);
         }
         
-        // تعبئة بيانات التعديل فقط إذا كان هذا بروفايلي
+        // Populate edit data only if it is my profile
         if (fetchedUser._id === currentUser._id) {
             setEditData({ 
                 username: fetchedUser.username, 
@@ -86,7 +84,7 @@ function Profile() {
             });
         }
 
-        // جلب بوستات هذا المستخدم
+        // Fetch user's posts
         const postsRes = await axios.get(`${API_URL}/api/posts/profile/${fetchedUser.username}`);
         setPosts(postsRes.data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
         
@@ -99,23 +97,23 @@ function Profile() {
     fetchData();
   }, [username, currentUser._id, navigate]); 
 
-  // ✅ التعامل مع المتابعة (Follow/Unfollow)
+  // Smart Follow Button Handler
   const handleFollow = async () => {
     try {
         if (isFollowing) {
-            // إلغاء المتابعة
+            // Unfollow
             await axios.put(`${API_URL}/api/users/${user._id}/unfollow`, { userId: currentUser._id });
-            // تحديث الواجهة فوراً (إنقاص متابع)
+            // Update local state immediately
             setUser(prev => ({...prev, followers: prev.followers.filter(id => id !== currentUser._id)}));
         } else {
-            // متابعة
+            // Follow
             await axios.put(`${API_URL}/api/users/${user._id}/follow`, { userId: currentUser._id });
-            // تحديث الواجهة فوراً (زيادة متابع)
+            // Update local state immediately
             setUser(prev => ({...prev, followers: [...prev.followers, currentUser._id]}));
         }
         setIsFollowing(!isFollowing);
 
-        // تحديث LocalStorage للمستخدم الحالي لنتذكر من نتابع
+        // Update LocalStorage for the current user to remember following status
         const updatedCurrentUser = JSON.parse(localStorage.getItem("user"));
         if (isFollowing) {
              updatedCurrentUser.followings = updatedCurrentUser.followings.filter(id => id !== user._id);
@@ -182,8 +180,7 @@ function Profile() {
       navigate("/");
   };
 
-  // ✅ هل هذا بروفايلي؟
-  // الشرط: إذا كان user._id يساوي currentUser._id
+  // Is this my profile?
   const isMyProfile = user && currentUser && user._id === currentUser._id;
 
   // Styles
@@ -232,7 +229,7 @@ function Profile() {
     bio: { fontSize: "14px", color: "#445566", whiteSpace: "pre-line", marginTop: "8px" },
     actions: { display: "flex", gap: "10px", marginTop: "10px" },
     
-    // الأزرار
+    // Buttons
     editBtn: {
         flex: 1, padding: "8px", borderRadius: "12px", border: "none",
         background: "rgba(255,255,255,0.5)", color: "#007aff", fontWeight: "600",
@@ -240,7 +237,6 @@ function Profile() {
     },
     followBtn: {
         flex: 1, padding: "8px", borderRadius: "12px", border: "none",
-        // تغيير اللون بناءً على حالة المتابعة
         background: isFollowing ? "rgba(255,255,255,0.5)" : "#007aff", 
         color: isFollowing ? "#333" : "white",
         fontWeight: "600", cursor: "pointer", fontSize: "13px", 
@@ -290,15 +286,15 @@ function Profile() {
     <div style={styles.container}>
       
       <div style={styles.header}>
-        {/* زر الرجوع يأخذك للصفحة الرئيسية */}
+        {/* Back button returns to Home */}
         <div onClick={() => navigate("/home")} style={{cursor: "pointer"}}><Icons.Back /></div>
         <div style={styles.headerTitle}>{user?.username}</div>
         
-        {/* إظهار القائمة وتسجيل الخروج فقط إذا كان حسابي */}
+        {/* Show Menu only if it's my profile */}
         {isMyProfile ? (
             <div onClick={handleLogout} style={{cursor: "pointer"}}><Icons.Menu /></div>
         ) : (
-            <div style={{width: 26}}></div> // مسافة فارغة للحفاظ على التنسيق
+            <div style={{width: 26}}></div>
         )}
       </div>
 
@@ -306,7 +302,6 @@ function Profile() {
         <div style={styles.topSection}>
             <div style={styles.imgContainer}>
                 <img src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={styles.profileImg} alt="profile" />
-                {/* إظهار زر تغيير الصورة فقط إذا كان حسابي */}
                 {isMyProfile && (
                     <>
                         <div style={styles.addBtn} onClick={() => document.getElementById("pPic").click()}>
@@ -330,7 +325,7 @@ function Profile() {
         </div>
 
         <div style={styles.actions}>
-            {/* ✅ الأزرار الديناميكية بناءً على الهوية */}
+            {/* Dynamic Buttons */}
             {isMyProfile ? (
                 <>
                     <button style={styles.editBtn} onClick={() => setIsEditing(true)}>Edit Profile</button>
@@ -341,7 +336,7 @@ function Profile() {
                     <button style={styles.followBtn} onClick={handleFollow}>
                         {isFollowing ? "Following" : "Follow"}
                     </button>
-                    <button style={styles.editBtn} onClick={() => alert("Coming soon!")}>Message</button>
+                    <button style={styles.editBtn} onClick={() => alert("Message feature coming soon!")}>Message</button>
                 </>
             )}
         </div>
@@ -354,7 +349,7 @@ function Profile() {
 
       <div style={styles.grid}>
         {activeTab === "posts" && posts.map((post) => {
-             // إخفاء المنشورات التي بدون صور
+             // Hide text-only posts
              if (!post.img) return null;
              return (
                  <div key={post._id} style={styles.gridItem}>
@@ -367,7 +362,6 @@ function Profile() {
         )}
       </div>
 
-      {/* نافذة التعديل - تظهر فقط إذا كان حسابي */}
       {isEditing && isMyProfile && (
         <div style={styles.modalOverlay} onClick={() => setIsEditing(false)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -390,7 +384,6 @@ function Profile() {
             <Icons.Plus />
         </div>
         <div onClick={() => navigate("/reels")} style={{cursor: "pointer", opacity: 0.6}}><Icons.Reels /></div>
-        {/* عند الضغط على الأيقونة في الأسفل، دائماً يذهب لبروفايلي أنا (بدون username في الرابط) */}
         <div style={styles.profileIconNav} onClick={() => navigate("/profile")}>
             <img src={currentUser?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={{width: '100%', height: '100%', objectFit: 'cover'}} alt="nav-profile" />
         </div>
