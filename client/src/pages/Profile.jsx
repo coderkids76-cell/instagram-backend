@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom"; // ✅ useParams لجلب الاسم من الرابط
+import { useNavigate, useParams } from "react-router-dom"; 
 import axios from "axios";
 import { API_URL } from "../config"; 
 
-// --- الأيقونات (الأزرق الناعم) ---
+// --- الأيقونات (تصميم Nexo الأزرق) ---
 const Icons = {
   Back: () => <svg fill="#007aff" height="26" viewBox="0 0 24 24" width="26"><path d="M21 17.502a.997.997 0 0 1-.707-.293L12 8.913l-8.293 8.296a1 1 0 1 1-1.414-1.414l9-9.004a1.03 1.03 0 0 1 1.414 0l9 9.004A1 1 0 0 1 21 17.502Z" transform="rotate(-90 12 12)"></path></svg>,
   Menu: () => <svg fill="#007aff" height="26" viewBox="0 0 24 24" width="26"><circle cx="12" cy="12" r="1.5"></circle><circle cx="6" cy="12" r="1.5"></circle><circle cx="18" cy="12" r="1.5"></circle></svg>,
@@ -19,15 +19,14 @@ const Icons = {
 
 function Profile() {
   const navigate = useNavigate();
-  const { username } = useParams(); // ✅ استقبال اسم المستخدم من الرابط
+  // ✅ الخطوة الأهم: جلب اسم المستخدم من الرابط
+  const { username } = useParams(); 
   
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("posts");
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  
-  // حالة المتابعة
   const [isFollowing, setIsFollowing] = useState(false);
   
   const [editData, setEditData] = useState({ username: "", name: "", bio: "" });
@@ -35,7 +34,7 @@ function Profile() {
 
   const currentUser = JSON.parse(localStorage.getItem("user"));
 
-  // ضغط الصورة
+  // دالة ضغط الصورة (للتعديل)
   const compressImage = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -61,21 +60,24 @@ function Profile() {
     const fetchData = async () => {
       if (!currentUser) { navigate("/"); return; }
       try {
-        // ✅ تحديد أي مستخدم سنجلب: من الرابط (username) أو المستخدم الحالي
+        setLoading(true);
+        // ✅ منطق تحديد المستخدم:
+        // 1. إذا كان الرابط يحتوي على username -> ابحث عنه.
+        // 2. إذا لم يكن (أو كان فارغاً) -> هات بياناتي أنا (currentUser).
         const query = username ? `username=${username}` : `userId=${currentUser._id}`;
         
         const userRes = await axios.get(`${API_URL}/api/users?${query}`);
         const fetchedUser = userRes.data;
         setUser(fetchedUser);
 
-        // ✅ التحقق هل أتابع هذا الشخص؟
+        // ✅ التحقق من المتابعة: هل أنا (currentUser) أتابع هذا الشخص (fetchedUser)؟
         if (currentUser.followings.includes(fetchedUser._id)) {
             setIsFollowing(true);
         } else {
             setIsFollowing(false);
         }
         
-        // تجهيز بيانات التعديل فقط إذا كان حسابي
+        // تعبئة بيانات التعديل فقط إذا كان هذا بروفايلي
         if (fetchedUser._id === currentUser._id) {
             setEditData({ 
                 username: fetchedUser.username, 
@@ -84,7 +86,7 @@ function Profile() {
             });
         }
 
-        // جلب المنشورات
+        // جلب بوستات هذا المستخدم
         const postsRes = await axios.get(`${API_URL}/api/posts/profile/${fetchedUser.username}`);
         setPosts(postsRes.data.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt)));
         
@@ -95,21 +97,25 @@ function Profile() {
       }
     };
     fetchData();
-  }, [username, currentUser._id, navigate]); // إعادة التحميل عند تغيير اليوزرنام
+  }, [username, currentUser._id, navigate]); 
 
-  // ✅ دالة التعامل مع المتابعة/إلغاء المتابعة
+  // ✅ التعامل مع المتابعة (Follow/Unfollow)
   const handleFollow = async () => {
     try {
         if (isFollowing) {
+            // إلغاء المتابعة
             await axios.put(`${API_URL}/api/users/${user._id}/unfollow`, { userId: currentUser._id });
-            setUser(prev => ({...prev, followers: prev.followers.filter(id => id !== currentUser._id)})); // تحديث العداد محلياً
+            // تحديث الواجهة فوراً (إنقاص متابع)
+            setUser(prev => ({...prev, followers: prev.followers.filter(id => id !== currentUser._id)}));
         } else {
+            // متابعة
             await axios.put(`${API_URL}/api/users/${user._id}/follow`, { userId: currentUser._id });
-            setUser(prev => ({...prev, followers: [...prev.followers, currentUser._id]})); // تحديث العداد محلياً
+            // تحديث الواجهة فوراً (زيادة متابع)
+            setUser(prev => ({...prev, followers: [...prev.followers, currentUser._id]}));
         }
         setIsFollowing(!isFollowing);
 
-        // تحديث LocalStorage (لتبقى المتابعة محفوظة عند التصفح)
+        // تحديث LocalStorage للمستخدم الحالي لنتذكر من نتابع
         const updatedCurrentUser = JSON.parse(localStorage.getItem("user"));
         if (isFollowing) {
              updatedCurrentUser.followings = updatedCurrentUser.followings.filter(id => id !== user._id);
@@ -134,13 +140,11 @@ function Profile() {
         });
         
         setUser({ ...user, profilePicture: compressedBase64 });
-        // تحديث LocalStorage
         const updatedLocalUser = { ...currentUser, profilePicture: compressedBase64 };
         localStorage.setItem("user", JSON.stringify(updatedLocalUser));
-        
         alert("Profile Picture Updated! ✨");
       } catch (err) {
-        alert(`Failed: ${err.response?.data?.message || err.message}`);
+        alert(`Failed: ${err.message}`);
       }
     }
   };
@@ -158,21 +162,17 @@ function Profile() {
       const newUserData = { 
         ...user, 
         username: editData.username.toLowerCase(), 
-        name: editData.name,
+        name: editData.name, 
         desc: editData.bio 
       };
       
       setUser(newUserData);
-      localStorage.setItem("user", JSON.stringify({ ...currentUser, ...newUserData })); // دمج البيانات للحفاظ على التوكن
+      localStorage.setItem("user", JSON.stringify({ ...currentUser, ...newUserData }));
 
       setIsEditing(false);
       alert("Profile updated successfully! 🎉");
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
-          setError(err.response.data.message);
-      } else {
-          setError("Failed to update profile. Try again.");
-      }
+      setError(err.response?.data?.message || "Failed to update.");
     }
   };
 
@@ -182,8 +182,9 @@ function Profile() {
       navigate("/");
   };
 
-  // ✅ هل هذا البروفايل يخصني؟
-  const isMyProfile = user && user._id === currentUser._id;
+  // ✅ هل هذا بروفايلي؟
+  // الشرط: إذا كان user._id يساوي currentUser._id
+  const isMyProfile = user && currentUser && user._id === currentUser._id;
 
   // Styles
   const glassStyle = {
@@ -231,18 +232,19 @@ function Profile() {
     bio: { fontSize: "14px", color: "#445566", whiteSpace: "pre-line", marginTop: "8px" },
     actions: { display: "flex", gap: "10px", marginTop: "10px" },
     
+    // الأزرار
     editBtn: {
         flex: 1, padding: "8px", borderRadius: "12px", border: "none",
         background: "rgba(255,255,255,0.5)", color: "#007aff", fontWeight: "600",
         cursor: "pointer", fontSize: "13px", boxShadow: "0 2px 5px rgba(0,0,0,0.05)"
     },
-    // زر المتابعة
     followBtn: {
         flex: 1, padding: "8px", borderRadius: "12px", border: "none",
-        background: isFollowing ? "rgba(255,255,255,0.5)" : "#007aff", // رمادي إذا أتابع، أزرق إذا لا
-        color: isFollowing ? "#333" : "white", 
-        fontWeight: "600",
-        cursor: "pointer", fontSize: "13px", boxShadow: "0 4px 10px rgba(0,122,255,0.2)"
+        // تغيير اللون بناءً على حالة المتابعة
+        background: isFollowing ? "rgba(255,255,255,0.5)" : "#007aff", 
+        color: isFollowing ? "#333" : "white",
+        fontWeight: "600", cursor: "pointer", fontSize: "13px", 
+        boxShadow: "0 4px 10px rgba(0,122,255,0.2)"
     },
 
     tabs: {
@@ -288,13 +290,15 @@ function Profile() {
     <div style={styles.container}>
       
       <div style={styles.header}>
-        <div onClick={() => navigate("/home")}><Icons.Back /></div>
+        {/* زر الرجوع يأخذك للصفحة الرئيسية */}
+        <div onClick={() => navigate("/home")} style={{cursor: "pointer"}}><Icons.Back /></div>
         <div style={styles.headerTitle}>{user?.username}</div>
-        {/* إظهار القائمة فقط إذا كان حسابي */}
+        
+        {/* إظهار القائمة وتسجيل الخروج فقط إذا كان حسابي */}
         {isMyProfile ? (
             <div onClick={handleLogout} style={{cursor: "pointer"}}><Icons.Menu /></div>
         ) : (
-            <div style={{width: "26px"}}></div>
+            <div style={{width: 26}}></div> // مسافة فارغة للحفاظ على التنسيق
         )}
       </div>
 
@@ -302,7 +306,7 @@ function Profile() {
         <div style={styles.topSection}>
             <div style={styles.imgContainer}>
                 <img src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={styles.profileImg} alt="profile" />
-                {/* إظهار زر الكاميرا فقط إذا كان حسابي */}
+                {/* إظهار زر تغيير الصورة فقط إذا كان حسابي */}
                 {isMyProfile && (
                     <>
                         <div style={styles.addBtn} onClick={() => document.getElementById("pPic").click()}>
@@ -326,7 +330,7 @@ function Profile() {
         </div>
 
         <div style={styles.actions}>
-            {/* ✅ الأزرار الديناميكية */}
+            {/* ✅ الأزرار الديناميكية بناءً على الهوية */}
             {isMyProfile ? (
                 <>
                     <button style={styles.editBtn} onClick={() => setIsEditing(true)}>Edit Profile</button>
@@ -337,7 +341,7 @@ function Profile() {
                     <button style={styles.followBtn} onClick={handleFollow}>
                         {isFollowing ? "Following" : "Follow"}
                     </button>
-                    <button style={styles.editBtn} onClick={() => alert("Chat feature coming soon!")}>Message</button>
+                    <button style={styles.editBtn} onClick={() => alert("Coming soon!")}>Message</button>
                 </>
             )}
         </div>
@@ -350,6 +354,7 @@ function Profile() {
 
       <div style={styles.grid}>
         {activeTab === "posts" && posts.map((post) => {
+             // إخفاء المنشورات التي بدون صور
              if (!post.img) return null;
              return (
                  <div key={post._id} style={styles.gridItem}>
@@ -362,6 +367,7 @@ function Profile() {
         )}
       </div>
 
+      {/* نافذة التعديل - تظهر فقط إذا كان حسابي */}
       {isEditing && isMyProfile && (
         <div style={styles.modalOverlay} onClick={() => setIsEditing(false)}>
             <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -384,8 +390,8 @@ function Profile() {
             <Icons.Plus />
         </div>
         <div onClick={() => navigate("/reels")} style={{cursor: "pointer", opacity: 0.6}}><Icons.Reels /></div>
+        {/* عند الضغط على الأيقونة في الأسفل، دائماً يذهب لبروفايلي أنا (بدون username في الرابط) */}
         <div style={styles.profileIconNav} onClick={() => navigate("/profile")}>
-            {/* في الشريط السفلي، نعرض دائماً صورة المستخدم المسجل للدخول */}
             <img src={currentUser?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={{width: '100%', height: '100%', objectFit: 'cover'}} alt="nav-profile" />
         </div>
       </div>

@@ -17,7 +17,7 @@ const Icons = {
   Share: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
 };
 
-// --- نافذة تفاصيل المنشور (Interactive Modal) ---
+// --- المودال للتفاعل مع المنشور ---
 const ExpandedPost = ({ post, currentUser }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
@@ -43,54 +43,47 @@ const ExpandedPost = ({ post, currentUser }) => {
     };
 
     return (
-        <div style={{background: "rgba(255,255,255,0.9)", backdropFilter:"blur(15px)", borderRadius: "20px", overflow: "hidden", maxWidth: "500px", width: "100%", boxShadow: "0 10px 40px rgba(0,0,0,0.2)"}}>
-            {/* Header */}
-            <div style={{padding: "10px 15px", display: "flex", alignItems: "center", borderBottom: "1px solid rgba(0,0,0,0.05)"}}>
+        <div style={{background: "white", borderRadius: "20px", overflow: "hidden", maxWidth: "500px", width: "95%", boxShadow: "0 10px 40px rgba(0,0,0,0.3)"}}>
+            <div style={{padding: "10px 15px", display: "flex", alignItems: "center", borderBottom: "1px solid #eee"}}>
                 <img 
                     src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
-                    style={{width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", marginRight: "10px", cursor: "pointer"}}
-                    onClick={() => navigate(`/profile/${user?.username}`)}
+                    style={{width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", marginRight: "10px"}}
                 />
-                <span style={{fontWeight: "bold", fontSize: "14px", color: "#003366", cursor: "pointer"}} onClick={() => navigate(`/profile/${user?.username}`)}>{user?.username}</span>
+                <span style={{fontWeight: "bold", fontSize: "14px", color: "#003366"}}>{user?.username}</span>
             </div>
             
-            {/* Image */}
-            <div style={{width: "100%", maxHeight: "400px", overflow: "hidden", display: "flex", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.03)"}}>
+            <div style={{width: "100%", maxHeight: "400px", overflow: "hidden", display: "flex", justifyContent: "center", backgroundColor: "#f0f0f0"}}>
                 <img src={post.img} style={{width: "100%", height: "auto", objectFit: "contain"}} alt="post" />
             </div>
 
-            {/* Actions */}
             <div style={{padding: "15px"}}>
                 <div style={{display: "flex", gap: "15px", marginBottom: "10px"}}>
-                    <div onClick={handleLike} style={{cursor: "pointer", display:"flex", alignItems:"center"}}>
+                    <div onClick={handleLike} style={{cursor: "pointer"}}>
                         {isLiked ? <Icons.HeartFilled /> : <Icons.Heart />}
                     </div>
-                    <div onClick={() => alert("Comment")} style={{cursor:"pointer"}}><Icons.Comment /></div>
-                    <div onClick={() => navigator.share?.({ title: 'Nexo', text: post.desc, url: window.location.href })} style={{cursor:"pointer"}}><Icons.Share /></div>
+                    <Icons.Comment />
+                    <Icons.Share />
                 </div>
-                <div style={{fontWeight: "bold", fontSize: "13px", marginBottom: "5px", color: "#003366"}}>{likeCount} likes</div>
-                <div style={{fontSize: "14px", color: "#333"}}>{post.desc}</div>
+                <div style={{fontWeight: "bold", fontSize: "13px", color: "#333"}}>{likeCount} likes</div>
+                <div style={{fontSize: "14px", color: "#555", marginTop: "5px"}}>{post.desc}</div>
             </div>
         </div>
     );
 };
-
 
 export default function Search() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [explorePosts, setExplorePosts] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
   
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // 1. جلب المنشورات العشوائية (Explore)
+  // ✅ جلب المنشورات العشوائية من المسار الجديد
   useEffect(() => {
     const fetchExplorePosts = async () => {
       try {
-        // ✅ استخدام الرابط الجديد لجلب كل المنشورات عشوائياً
         const res = await axios.get(`${API_URL}/api/posts/explore/all`);
         setExplorePosts(res.data);
       } catch (err) { console.log(err); }
@@ -98,42 +91,35 @@ export default function Search() {
     fetchExplorePosts();
   }, []);
 
-  // 2. البحث عن مستخدمين
+  // البحث
   useEffect(() => {
     const searchUsers = async () => {
       if (query.length > 1) {
-        setLoading(true);
         try {
           const res = await axios.get(`${API_URL}/api/users/search/${query}`);
           setSearchResults(res.data);
         } catch (err) { console.log(err); } 
-        finally { setLoading(false); }
-      } else {
-        setSearchResults([]);
-      }
+      } else { setSearchResults([]); }
     };
-    const timeoutId = setTimeout(() => { searchUsers(); }, 500);
+    const timeoutId = setTimeout(searchUsers, 500);
     return () => clearTimeout(timeoutId);
   }, [query]);
 
   return (
     <div style={styles.container}>
-      {/* Search Header */}
       <div style={styles.searchHeader}>
         <div style={styles.searchBox}>
             <div style={{paddingLeft: "10px", display: "flex"}}><Icons.SearchIcon /></div>
             <input style={styles.searchInput} placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
-            {query && (<div onClick={() => setQuery("")} style={{paddingRight: "10px", cursor: "pointer", display: "flex"}}><Icons.Close /></div>)}
+            {query && (<div onClick={() => setQuery("")} style={{paddingRight: "10px", cursor: "pointer"}}><Icons.Close /></div>)}
         </div>
       </div>
 
       <div style={styles.content}>
         {query.length > 0 ? (
             <div style={styles.resultsList}>
-                {loading ? <div style={{textAlign: "center", padding: "20px", color: "#666"}}>Searching...</div> : 
-                 searchResults.length === 0 ? <div style={{textAlign: "center", padding: "20px", color: "#666"}}>No users found.</div> : 
-                 (searchResults.map((result) => (
-                    // ✅ هنا الحل لمشكلة التوجيه: نرسل اسم المستخدم في الرابط
+                 {searchResults.map((result) => (
+                    // ✅ التوجيه للبروفايل الصحيح
                     <div key={result._id} style={styles.userRow} onClick={() => navigate(`/profile/${result.username}`)}>
                         <img src={result.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={styles.userAvatar} alt="user"/>
                         <div style={styles.userInfo}>
@@ -141,7 +127,7 @@ export default function Search() {
                             <div style={styles.name}>{result.name || "Nexo User"}</div>
                         </div>
                     </div>
-                )))}
+                ))}
             </div>
         ) : (
             <div style={styles.gridContainer}>
@@ -157,16 +143,15 @@ export default function Search() {
         )}
       </div>
 
-      {/* ✅ النافذة المنبثقة للتفاعل مع المنشور */}
+      {/* ✅ المودال */}
       {selectedPost && (
           <div style={styles.modalOverlay} onClick={() => setSelectedPost(null)}>
-              <div onClick={(e) => e.stopPropagation()} style={{width: "90%", maxWidth: "500px", display:"flex", justifyContent:"center"}}>
+              <div onClick={(e) => e.stopPropagation()}>
                   <ExpandedPost post={selectedPost} currentUser={user} />
               </div>
           </div>
       )}
 
-      {/* Bottom Nav */}
       <div style={styles.bottomNav}>
         <div onClick={() => navigate("/home")} style={{opacity: 0.6}}><Icons.Home /></div>
         <div onClick={() => navigate("/search")}><Icons.SearchFilled /></div>
@@ -180,7 +165,6 @@ export default function Search() {
   );
 }
 
-// Styles
 const glassStyle = {
     background: "rgba(255, 255, 255, 0.65)", backdropFilter: "blur(20px)",
     WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.5)",
@@ -190,7 +174,7 @@ const glassStyle = {
 const styles = {
     container: {
       background: "linear-gradient(180deg, #E2D1F9 0%, #dbeafe 100%)",
-      minHeight: "100vh", paddingBottom: "80px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      minHeight: "100vh", paddingBottom: "80px", fontFamily: "sans-serif",
     },
     searchHeader: {
         padding: "10px 15px", position: "sticky", top: 0, zIndex: 10,
@@ -229,4 +213,4 @@ const styles = {
         boxShadow: '0 8px 20px rgba(0, 122, 255, 0.35)', cursor: "pointer", transform: "translateY(-15px)"
     },
     profileIconNav: { width: "30px", height: "30px", borderRadius: "50%", overflow: "hidden", border: "2px solid #007aff", cursor: "pointer" }
-  };
+};
