@@ -15,25 +15,33 @@ const Icons = {
   HeartFilled: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="#ff3040" stroke="#ff3040" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>,
   Comment: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinejoin="round"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"></path></svg>,
   Share: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
+  Send: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
 };
 
-// --- المودال للتفاعل مع المنشور ---
+// --- المودال المتطور (ExpandedPost) ---
 const ExpandedPost = ({ post, currentUser }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [isLiked, setIsLiked] = useState(post.likes?.includes(currentUser?._id));
     const [likeCount, setLikeCount] = useState(post.likes?.length || 0);
+    
+    // حالات جديدة للمتابعة والتعليق
+    const [isFollowing, setIsFollowing] = useState(false);
+    const [comment, setComment] = useState("");
 
+    // جلب بيانات صاحب المنشور والتحقق من المتابعة
     useEffect(() => {
         const fetchUser = async () => {
             try {
                 const res = await axios.get(`${API_URL}/api/users?userId=${post.userId}`);
                 setUser(res.data);
+                setIsFollowing(currentUser.followings.includes(res.data._id));
             } catch (err) { console.error(err); }
         };
         fetchUser();
-    }, [post.userId]);
+    }, [post.userId, currentUser.followings]);
 
+    // 1. منطق اللايك
     const handleLike = async () => {
         try {
             await axios.put(`${API_URL}/api/posts/${post._id}/like`, { userId: currentUser._id });
@@ -42,30 +50,110 @@ const ExpandedPost = ({ post, currentUser }) => {
         } catch (err) { console.log(err); }
     };
 
+    // 2. منطق المتابعة (داخل المودال)
+    const handleFollow = async () => {
+        try {
+            if (isFollowing) {
+                await axios.put(`${API_URL}/api/users/${user._id}/unfollow`, { userId: currentUser._id });
+            } else {
+                await axios.put(`${API_URL}/api/users/${user._id}/follow`, { userId: currentUser._id });
+            }
+            setIsFollowing(!isFollowing);
+            
+            // تحديث LocalStorage
+            const updatedUser = JSON.parse(localStorage.getItem("user"));
+            if (isFollowing) {
+                updatedUser.followings = updatedUser.followings.filter(id => id !== user._id);
+            } else {
+                updatedUser.followings.push(user._id);
+            }
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+        } catch (err) { console.log(err); }
+    };
+
+    // 3. منطق المشاركة
+    const handleShare = () => {
+        if (navigator.share) {
+            navigator.share({
+                title: 'Nexo Post',
+                text: post.desc,
+                url: window.location.href,
+            }).catch(console.error);
+        } else {
+            alert("Sharing not supported on this browser");
+        }
+    };
+
+    // 4. منطق إرسال التعليق (شكلي حالياً إذا لم يكن هناك API جاهز)
+    const handleCommentSubmit = async () => {
+        if (!comment.trim()) return;
+        // هنا يمكنك إضافة كود axios.post لإرسال التعليق للسيرفر
+        alert(`Comment sent: ${comment}`);
+        setComment("");
+    };
+
     return (
-        <div style={{background: "white", borderRadius: "20px", overflow: "hidden", maxWidth: "500px", width: "95%", boxShadow: "0 10px 40px rgba(0,0,0,0.3)"}}>
-            <div style={{padding: "10px 15px", display: "flex", alignItems: "center", borderBottom: "1px solid #eee"}}>
-                <img 
-                    src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
-                    style={{width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", marginRight: "10px"}}
-                />
-                <span style={{fontWeight: "bold", fontSize: "14px", color: "#003366"}}>{user?.username}</span>
+        <div style={{background: "white", borderRadius: "20px", overflow: "hidden", maxWidth: "500px", width: "100%", boxShadow: "0 10px 40px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", maxHeight: "90vh"}}>
+            
+            {/* Header: User Info + Follow Button */}
+            <div style={{padding: "10px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #eee"}}>
+                <div style={{display: "flex", alignItems: "center", cursor: "pointer"}} onClick={() => navigate(`/profile/${user?.username}`)}>
+                    <img 
+                        src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                        style={{width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", marginRight: "10px"}}
+                    />
+                    <span style={{fontWeight: "bold", fontSize: "14px", color: "#003366"}}>{user?.username}</span>
+                </div>
+                {/* زر المتابعة يظهر فقط إذا لم يكن منشوري */}
+                {user?._id !== currentUser._id && (
+                    <button 
+                        onClick={handleFollow}
+                        style={{
+                            background: isFollowing ? "#eee" : "#007aff",
+                            color: isFollowing ? "#333" : "white",
+                            border: "none", padding: "6px 12px", borderRadius: "8px",
+                            fontWeight: "600", fontSize: "12px", cursor: "pointer"
+                        }}
+                    >
+                        {isFollowing ? "Following" : "Follow"}
+                    </button>
+                )}
             </div>
             
-            <div style={{width: "100%", maxHeight: "400px", overflow: "hidden", display: "flex", justifyContent: "center", backgroundColor: "#f0f0f0"}}>
+            {/* Image (Scrollable) */}
+            <div style={{flex: 1, overflowY: "auto", background: "#f8f8f8", display: "flex", alignItems: "center", justifyContent: "center"}}>
                 <img src={post.img} style={{width: "100%", height: "auto", objectFit: "contain"}} alt="post" />
             </div>
 
-            <div style={{padding: "15px"}}>
+            {/* Actions & Comment */}
+            <div style={{padding: "15px", background: "white"}}>
                 <div style={{display: "flex", gap: "15px", marginBottom: "10px"}}>
-                    <div onClick={handleLike} style={{cursor: "pointer"}}>
+                    <div onClick={handleLike} style={{cursor: "pointer", display:"flex", alignItems:"center"}}>
                         {isLiked ? <Icons.HeartFilled /> : <Icons.Heart />}
                     </div>
-                    <Icons.Comment />
-                    <Icons.Share />
+                    <div style={{cursor:"pointer"}}><Icons.Comment /></div>
+                    <div onClick={handleShare} style={{cursor:"pointer"}}><Icons.Share /></div>
                 </div>
-                <div style={{fontWeight: "bold", fontSize: "13px", color: "#333"}}>{likeCount} likes</div>
-                <div style={{fontSize: "14px", color: "#555", marginTop: "5px"}}>{post.desc}</div>
+                
+                <div style={{fontWeight: "bold", fontSize: "13px", color: "#003366", marginBottom: "5px"}}>{likeCount} likes</div>
+                <div style={{fontSize: "14px", color: "#333", marginBottom: "10px"}}>
+                    <span style={{fontWeight: "bold", marginRight: "5px"}}>{user?.username}</span>
+                    {post.desc}
+                </div>
+
+                {/* Comment Input */}
+                <div style={{display: "flex", alignItems: "center", borderTop: "1px solid #eee", paddingTop: "10px"}}>
+                    <input 
+                        type="text" 
+                        placeholder="Add a comment..." 
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        style={{flex: 1, border: "none", outline: "none", fontSize: "14px"}}
+                    />
+                    <div onClick={handleCommentSubmit} style={{cursor: "pointer", opacity: comment ? 1 : 0.5}}>
+                        <Icons.Send />
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -80,7 +168,6 @@ export default function Search() {
   
   const user = JSON.parse(localStorage.getItem("user"));
 
-  // ✅ جلب المنشورات العشوائية من المسار الجديد
   useEffect(() => {
     const fetchExplorePosts = async () => {
       try {
@@ -91,7 +178,6 @@ export default function Search() {
     fetchExplorePosts();
   }, []);
 
-  // البحث
   useEffect(() => {
     const searchUsers = async () => {
       if (query.length > 1) {
@@ -119,7 +205,6 @@ export default function Search() {
         {query.length > 0 ? (
             <div style={styles.resultsList}>
                  {searchResults.map((result) => (
-                    // ✅ التوجيه للبروفايل الصحيح
                     <div key={result._id} style={styles.userRow} onClick={() => navigate(`/profile/${result.username}`)}>
                         <img src={result.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} style={styles.userAvatar} alt="user"/>
                         <div style={styles.userInfo}>
@@ -143,10 +228,10 @@ export default function Search() {
         )}
       </div>
 
-      {/* ✅ المودال */}
+      {/* Modal */}
       {selectedPost && (
           <div style={styles.modalOverlay} onClick={() => setSelectedPost(null)}>
-              <div onClick={(e) => e.stopPropagation()}>
+              <div onClick={(e) => e.stopPropagation()} style={{display:"flex", width:"100%", justifyContent:"center"}}>
                   <ExpandedPost post={selectedPost} currentUser={user} />
               </div>
           </div>
@@ -199,7 +284,7 @@ const styles = {
     modalOverlay: {
         position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(5px)",
-        display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000
+        display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px"
     },
 
     bottomNav: {
@@ -213,4 +298,4 @@ const styles = {
         boxShadow: '0 8px 20px rgba(0, 122, 255, 0.35)', cursor: "pointer", transform: "translateY(-15px)"
     },
     profileIconNav: { width: "30px", height: "30px", borderRadius: "50%", overflow: "hidden", border: "2px solid #007aff", cursor: "pointer" }
-};
+  };

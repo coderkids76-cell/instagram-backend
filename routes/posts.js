@@ -83,7 +83,7 @@ router.get("/profile/:username", async (req, res) => {
 router.get("/explore/all", async (req, res) => {
   try {
     // يجلب 20 منشور بشكل عشوائي من كل قاعدة البيانات
-    const randomPosts = await Post.aggregate([ { $sample: { size: 20 } } ]);
+    const randomPosts = await Post.aggregate([ { $sample: { size: 10 } } ]);
     res.status(200).json(randomPosts);
   } catch (err) { res.status(500).json(err); }
 });
