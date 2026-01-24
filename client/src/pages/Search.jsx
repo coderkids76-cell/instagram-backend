@@ -73,21 +73,23 @@ const ExpandedPost = ({ post, currentUser }) => {
 
     const handleCommentSubmit = async () => {
         if (!comment.trim()) return;
-        alert(`Comment sent: ${comment}`); // يمكنك استبدال هذا لاحقاً بربط API التعليقات
+        alert(`Comment sent: ${comment}`); 
         setComment("");
     };
 
+    // ✅✅✅ تصميم البطاقة المربعة الثابتة ✅✅✅
     return (
         <div 
-            onClick={(e) => e.stopPropagation()} // ✅ منع إغلاق البطاقة عند النقر داخلها
+            onClick={(e) => e.stopPropagation()} // منع الإغلاق عند النقر داخل البطاقة
             style={{
                 background: "#ffffff",
-                borderRadius: "24px",
+                borderRadius: "20px",
                 overflow: "hidden",
-                width: "95%", 
-                maxWidth: "450px", 
-                maxHeight: "80vh", // ✅ تحديد الارتفاع للسماح بالسكرول
-                boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+                width: "90%", 
+                maxWidth: "400px",
+                height: "auto",
+                maxHeight: "85vh", // أقصى ارتفاع للشاشة
+                boxShadow: "0 10px 40px rgba(0,0,0,0.3)",
                 display: "flex", 
                 flexDirection: "column",
                 position: "relative"
@@ -95,13 +97,21 @@ const ExpandedPost = ({ post, currentUser }) => {
         >
             
             {/* 1. Header (ثابت في الأعلى) */}
-            <div style={{padding: "12px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #f0f0f0", background: "#fff", zIndex: 2}}>
+            <div style={{
+                padding: "12px 15px", 
+                display: "flex", 
+                alignItems: "center", 
+                justifyContent: "space-between", 
+                borderBottom: "1px solid #eee", 
+                background: "#fff",
+                zIndex: 10
+            }}>
                 <div style={{display: "flex", alignItems: "center", cursor: "pointer"}} onClick={() => navigate(`/profile/${user?.username}`)}>
                     <img 
                         src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
-                        style={{width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover", marginRight: "10px", border: "1px solid #eee"}}
+                        style={{width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", marginRight: "10px", border: "1px solid #eee"}}
                     />
-                    <span style={{fontWeight: "700", fontSize: "14px", color: "#003366"}}>{user?.username}</span>
+                    <span style={{fontWeight: "bold", fontSize: "14px", color: "#003366"}}>{user?.username}</span>
                 </div>
                 {user?._id !== currentUser._id && (
                     <button 
@@ -118,19 +128,26 @@ const ExpandedPost = ({ post, currentUser }) => {
                 )}
             </div>
             
-            {/* 2. Scrollable Body (محتوى قابل للسكرول) */}
-            <div style={{flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", background: "#fff"}}>
+            {/* 2. Scrollable Body (الوسط: صورة + وصف + أزرار) */}
+            {/* ✅ هذا الجزء فقط هو الذي يتحرك (Scroll) */}
+            <div style={{
+                flex: 1, 
+                overflowY: "auto", 
+                display: "flex", 
+                flexDirection: "column", 
+                background: "#fff"
+            }}>
                 {/* حاوية الصورة */}
                 <div style={{
                     width: "100%", 
                     display: "flex", alignItems: "center", justifyContent: "center", 
-                    backgroundColor: "#f8f8f8", minHeight: "200px"
+                    backgroundColor: "#f8f8f8", minHeight: "250px"
                 }}>
                     <img src={post.img} style={{width: "100%", height: "auto", objectFit: "contain"}} alt="post" />
                 </div>
 
                 {/* الأزرار والوصف */}
-                <div style={{padding: "15px", paddingBottom: "20px"}}>
+                <div style={{padding: "15px"}}>
                     <div style={{display: "flex", gap: "16px", marginBottom: "12px"}}>
                         <div onClick={handleLike} style={{cursor: "pointer", display:"flex", alignItems:"center"}}>
                             {isLiked ? <Icons.HeartFilled /> : <Icons.Heart />}
@@ -139,10 +156,10 @@ const ExpandedPost = ({ post, currentUser }) => {
                         <div onClick={handleShare} style={{cursor:"pointer"}}><Icons.Share /></div>
                     </div>
                     
-                    <div style={{fontWeight: "700", fontSize: "14px", color: "#003366", marginBottom: "6px"}}>{likeCount} likes</div>
+                    <div style={{fontWeight: "bold", fontSize: "13px", color: "#003366", marginBottom: "6px"}}>{likeCount} likes</div>
                     
-                    <div style={{fontSize: "14px", color: "#333", lineHeight: "1.4"}}>
-                        <span style={{fontWeight: "700", marginRight: "6px", color: "#003366"}}>{user?.username}</span>
+                    <div style={{fontSize: "14px", color: "#333", lineHeight: "1.5"}}>
+                        <span style={{fontWeight: "bold", marginRight: "6px", color: "#003366"}}>{user?.username}</span>
                         {post.desc}
                     </div>
                 </div>
@@ -150,18 +167,18 @@ const ExpandedPost = ({ post, currentUser }) => {
 
             {/* 3. Footer (خانة التعليق ثابتة في الأسفل) */}
             <div style={{
-                borderTop: "1px solid #f0f0f0",
-                padding: "12px 15px",
+                borderTop: "1px solid #eee",
+                padding: "10px 15px",
                 display: "flex", alignItems: "center",
                 background: "#fff",
-                zIndex: 2
+                zIndex: 10
             }}>
                 <div style={{
                     flex: 1,
                     display: "flex", alignItems: "center",
-                    background: "#f0f2f5",
-                    borderRadius: "25px",
-                    padding: "10px 15px",
+                    background: "#f0f2f5", // خلفية رمادية فاتحة للخانة
+                    borderRadius: "20px",
+                    padding: "8px 15px",
                     marginRight: "10px"
                 }}>
                     <input 
@@ -262,16 +279,13 @@ export default function Search() {
         )}
       </div>
 
-      {/* ✅ Modal Overlay (الغطاء الخلفي) */}
+      {/* ✅ Modal Overlay (الخلفية المظللة) */}
       {selectedPost && (
           <div 
             style={styles.modalOverlay} 
-            onClick={() => setSelectedPost(null)} // ✅ عند الضغط هنا يتم الإغلاق
+            onClick={() => setSelectedPost(null)} // ✅ إغلاق عند الضغط خارج البطاقة
           >
-              <div 
-                style={{display:"flex", width:"100%", justifyContent:"center"}}
-                onClick={(e) => e.stopPropagation()} // ✅ حماية إضافية لمنع الإغلاق الخاطئ
-              >
+              <div style={{display:"flex", width:"100%", justifyContent:"center", alignItems:"center", height:"100%"}}>
                   <ExpandedPost post={selectedPost} currentUser={user} />
               </div>
           </div>
@@ -321,11 +335,14 @@ const styles = {
     username: { fontWeight: "700", fontSize: "14px", color: "#003366" },
     name: { fontSize: "12px", color: "#666" },
     
-    // ✅ تنسيق الخلفية المظللة للإغلاق
+    // ✅ تنسيق الخلفية المظللة (Overlay)
+    // Z-Index عالي جداً لضمان ظهورها فوق الشريط السفلي
     modalOverlay: {
         position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(5px)",
-        display: "flex", justifyContent: "center", alignItems: "center", zIndex: 1000, padding: "20px"
+        display: "flex", justifyContent: "center", alignItems: "center", 
+        zIndex: 2000, // ✅ أعلى من الشريط السفلي (1000)
+        padding: "20px"
     },
 
     bottomNav: {
