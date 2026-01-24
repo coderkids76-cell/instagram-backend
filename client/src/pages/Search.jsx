@@ -13,7 +13,7 @@ const Icons = {
   Close: () => <svg fill="#333" height="20" viewBox="0 0 24 24" width="20"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>,
   Heart: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>,
   HeartFilled: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="#ff3040" stroke="#ff3040" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>,
-  Comment: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinejoin="round"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"></path></svg>,
+  Comment: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"></path></svg>,
   Share: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
   Send: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
 };
@@ -78,20 +78,23 @@ const ExpandedPost = ({ post, currentUser }) => {
     };
 
     return (
-        <div style={{
-            background: "#ffffff",
-            borderRadius: "24px",
-            overflow: "hidden",
-            width: "95%", 
-            maxWidth: "450px", 
-            maxHeight: "85vh", // ارتفاع أقصى ليناسب الشاشة
-            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
-            display: "flex", 
-            flexDirection: "column",
-            position: "relative"
-        }}>
+        <div 
+            onClick={(e) => e.stopPropagation()} // ✅ منع إغلاق البطاقة عند النقر داخلها
+            style={{
+                background: "#ffffff",
+                borderRadius: "24px",
+                overflow: "hidden",
+                width: "95%", 
+                maxWidth: "450px", 
+                maxHeight: "80vh", // ✅ تحديد الارتفاع للسماح بالسكرول
+                boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+                display: "flex", 
+                flexDirection: "column",
+                position: "relative"
+            }}
+        >
             
-            {/* 1. Header (Fixed top) */}
+            {/* 1. Header (ثابت في الأعلى) */}
             <div style={{padding: "12px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #f0f0f0", background: "#fff", zIndex: 2}}>
                 <div style={{display: "flex", alignItems: "center", cursor: "pointer"}} onClick={() => navigate(`/profile/${user?.username}`)}>
                     <img 
@@ -115,19 +118,19 @@ const ExpandedPost = ({ post, currentUser }) => {
                 )}
             </div>
             
-            {/* 2. Scrollable Content Area (Image + Caption + Actions) */}
+            {/* 2. Scrollable Body (محتوى قابل للسكرول) */}
             <div style={{flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", background: "#fff"}}>
-                {/* Image Container */}
+                {/* حاوية الصورة */}
                 <div style={{
                     width: "100%", 
                     display: "flex", alignItems: "center", justifyContent: "center", 
-                    backgroundColor: "#f8f8f8", overflow: "hidden", minHeight: "200px"
+                    backgroundColor: "#f8f8f8", minHeight: "200px"
                 }}>
-                    <img src={post.img} style={{width: "100%", height: "auto", maxHeight:"500px", objectFit: "contain"}} alt="post" />
+                    <img src={post.img} style={{width: "100%", height: "auto", objectFit: "contain"}} alt="post" />
                 </div>
 
-                {/* Actions & Caption */}
-                <div style={{padding: "15px"}}>
+                {/* الأزرار والوصف */}
+                <div style={{padding: "15px", paddingBottom: "20px"}}>
                     <div style={{display: "flex", gap: "16px", marginBottom: "12px"}}>
                         <div onClick={handleLike} style={{cursor: "pointer", display:"flex", alignItems:"center"}}>
                             {isLiked ? <Icons.HeartFilled /> : <Icons.Heart />}
@@ -145,7 +148,7 @@ const ExpandedPost = ({ post, currentUser }) => {
                 </div>
             </div>
 
-            {/* 3. Comment Input Bar (Fixed Bottom) */}
+            {/* 3. Footer (خانة التعليق ثابتة في الأسفل) */}
             <div style={{
                 borderTop: "1px solid #f0f0f0",
                 padding: "12px 15px",
@@ -156,7 +159,7 @@ const ExpandedPost = ({ post, currentUser }) => {
                 <div style={{
                     flex: 1,
                     display: "flex", alignItems: "center",
-                    background: "#f0f2f5", // لون كبسولة رمادي فاتح
+                    background: "#f0f2f5",
                     borderRadius: "25px",
                     padding: "10px 15px",
                     marginRight: "10px"
@@ -259,10 +262,16 @@ export default function Search() {
         )}
       </div>
 
-      {/* Modal Overlay */}
+      {/* ✅ Modal Overlay (الغطاء الخلفي) */}
       {selectedPost && (
-          <div style={styles.modalOverlay} onClick={() => setSelectedPost(null)}>
-              <div onClick={(e) => e.stopPropagation()} style={{display:"flex", width:"100%", justifyContent:"center"}}>
+          <div 
+            style={styles.modalOverlay} 
+            onClick={() => setSelectedPost(null)} // ✅ عند الضغط هنا يتم الإغلاق
+          >
+              <div 
+                style={{display:"flex", width:"100%", justifyContent:"center"}}
+                onClick={(e) => e.stopPropagation()} // ✅ حماية إضافية لمنع الإغلاق الخاطئ
+              >
                   <ExpandedPost post={selectedPost} currentUser={user} />
               </div>
           </div>
@@ -312,6 +321,7 @@ const styles = {
     username: { fontWeight: "700", fontSize: "14px", color: "#003366" },
     name: { fontSize: "12px", color: "#666" },
     
+    // ✅ تنسيق الخلفية المظللة للإغلاق
     modalOverlay: {
         position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(5px)",
