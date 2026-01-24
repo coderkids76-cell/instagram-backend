@@ -18,18 +18,16 @@ const Icons = {
   Send: () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
 };
 
-// --- المودال المتطور (ExpandedPost) ---
+// --- المودال المتطور والمربع (ExpandedPost) ---
 const ExpandedPost = ({ post, currentUser }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [isLiked, setIsLiked] = useState(post.likes?.includes(currentUser?._id));
     const [likeCount, setLikeCount] = useState(post.likes?.length || 0);
-    
-    // حالات جديدة للمتابعة والتعليق
     const [isFollowing, setIsFollowing] = useState(false);
     const [comment, setComment] = useState("");
 
-    // جلب بيانات صاحب المنشور والتحقق من المتابعة
+    // جلب البيانات
     useEffect(() => {
         const fetchUser = async () => {
             try {
@@ -41,7 +39,6 @@ const ExpandedPost = ({ post, currentUser }) => {
         fetchUser();
     }, [post.userId, currentUser.followings]);
 
-    // 1. منطق اللايك
     const handleLike = async () => {
         try {
             await axios.put(`${API_URL}/api/posts/${post._id}/like`, { userId: currentUser._id });
@@ -50,7 +47,6 @@ const ExpandedPost = ({ post, currentUser }) => {
         } catch (err) { console.log(err); }
     };
 
-    // 2. منطق المتابعة (داخل المودال)
     const handleFollow = async () => {
         try {
             if (isFollowing) {
@@ -59,8 +55,6 @@ const ExpandedPost = ({ post, currentUser }) => {
                 await axios.put(`${API_URL}/api/users/${user._id}/follow`, { userId: currentUser._id });
             }
             setIsFollowing(!isFollowing);
-            
-            // تحديث LocalStorage
             const updatedUser = JSON.parse(localStorage.getItem("user"));
             if (isFollowing) {
                 updatedUser.followings = updatedUser.followings.filter(id => id !== user._id);
@@ -71,48 +65,49 @@ const ExpandedPost = ({ post, currentUser }) => {
         } catch (err) { console.log(err); }
     };
 
-    // 3. منطق المشاركة
     const handleShare = () => {
         if (navigator.share) {
-            navigator.share({
-                title: 'Nexo Post',
-                text: post.desc,
-                url: window.location.href,
-            }).catch(console.error);
-        } else {
-            alert("Sharing not supported on this browser");
-        }
+            navigator.share({ title: 'Nexo Post', text: post.desc, url: window.location.href }).catch(console.error);
+        } else { alert("Sharing not supported"); }
     };
 
-    // 4. منطق إرسال التعليق (شكلي حالياً إذا لم يكن هناك API جاهز)
     const handleCommentSubmit = async () => {
         if (!comment.trim()) return;
-        // هنا يمكنك إضافة كود axios.post لإرسال التعليق للسيرفر
-        alert(`Comment sent: ${comment}`);
+        alert(`Comment sent: ${comment}`); // يمكنك استبدال هذا لاحقاً بربط API التعليقات
         setComment("");
     };
 
     return (
-        <div style={{background: "white", borderRadius: "20px", overflow: "hidden", maxWidth: "500px", width: "100%", boxShadow: "0 10px 40px rgba(0,0,0,0.3)", display: "flex", flexDirection: "column", maxHeight: "90vh"}}>
+        <div style={{
+            background: "#ffffff",
+            borderRadius: "24px",
+            overflow: "hidden",
+            width: "95%", 
+            maxWidth: "450px", 
+            maxHeight: "85vh", // ارتفاع أقصى ليناسب الشاشة
+            boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+            display: "flex", 
+            flexDirection: "column",
+            position: "relative"
+        }}>
             
-            {/* Header: User Info + Follow Button */}
-            <div style={{padding: "10px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #eee"}}>
+            {/* 1. Header (Fixed top) */}
+            <div style={{padding: "12px 15px", display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #f0f0f0", background: "#fff", zIndex: 2}}>
                 <div style={{display: "flex", alignItems: "center", cursor: "pointer"}} onClick={() => navigate(`/profile/${user?.username}`)}>
                     <img 
                         src={user?.profilePicture || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
-                        style={{width: "35px", height: "35px", borderRadius: "50%", objectFit: "cover", marginRight: "10px"}}
+                        style={{width: "32px", height: "32px", borderRadius: "50%", objectFit: "cover", marginRight: "10px", border: "1px solid #eee"}}
                     />
-                    <span style={{fontWeight: "bold", fontSize: "14px", color: "#003366"}}>{user?.username}</span>
+                    <span style={{fontWeight: "700", fontSize: "14px", color: "#003366"}}>{user?.username}</span>
                 </div>
-                {/* زر المتابعة يظهر فقط إذا لم يكن منشوري */}
                 {user?._id !== currentUser._id && (
                     <button 
                         onClick={handleFollow}
                         style={{
-                            background: isFollowing ? "#eee" : "#007aff",
+                            background: isFollowing ? "#f0f2f5" : "#007aff",
                             color: isFollowing ? "#333" : "white",
-                            border: "none", padding: "6px 12px", borderRadius: "8px",
-                            fontWeight: "600", fontSize: "12px", cursor: "pointer"
+                            border: "none", padding: "6px 14px", borderRadius: "20px",
+                            fontWeight: "600", fontSize: "12px", cursor: "pointer", transition: "all 0.2s"
                         }}
                     >
                         {isFollowing ? "Following" : "Follow"}
@@ -120,39 +115,73 @@ const ExpandedPost = ({ post, currentUser }) => {
                 )}
             </div>
             
-            {/* Image (Scrollable) */}
-            <div style={{flex: 1, overflowY: "auto", background: "#f8f8f8", display: "flex", alignItems: "center", justifyContent: "center"}}>
-                <img src={post.img} style={{width: "100%", height: "auto", objectFit: "contain"}} alt="post" />
+            {/* 2. Scrollable Content Area (Image + Caption + Actions) */}
+            <div style={{flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", background: "#fff"}}>
+                {/* Image Container */}
+                <div style={{
+                    width: "100%", 
+                    display: "flex", alignItems: "center", justifyContent: "center", 
+                    backgroundColor: "#f8f8f8", overflow: "hidden", minHeight: "200px"
+                }}>
+                    <img src={post.img} style={{width: "100%", height: "auto", maxHeight:"500px", objectFit: "contain"}} alt="post" />
+                </div>
+
+                {/* Actions & Caption */}
+                <div style={{padding: "15px"}}>
+                    <div style={{display: "flex", gap: "16px", marginBottom: "12px"}}>
+                        <div onClick={handleLike} style={{cursor: "pointer", display:"flex", alignItems:"center"}}>
+                            {isLiked ? <Icons.HeartFilled /> : <Icons.Heart />}
+                        </div>
+                        <div style={{cursor:"pointer"}}><Icons.Comment /></div>
+                        <div onClick={handleShare} style={{cursor:"pointer"}}><Icons.Share /></div>
+                    </div>
+                    
+                    <div style={{fontWeight: "700", fontSize: "14px", color: "#003366", marginBottom: "6px"}}>{likeCount} likes</div>
+                    
+                    <div style={{fontSize: "14px", color: "#333", lineHeight: "1.4"}}>
+                        <span style={{fontWeight: "700", marginRight: "6px", color: "#003366"}}>{user?.username}</span>
+                        {post.desc}
+                    </div>
+                </div>
             </div>
 
-            {/* Actions & Comment */}
-            <div style={{padding: "15px", background: "white"}}>
-                <div style={{display: "flex", gap: "15px", marginBottom: "10px"}}>
-                    <div onClick={handleLike} style={{cursor: "pointer", display:"flex", alignItems:"center"}}>
-                        {isLiked ? <Icons.HeartFilled /> : <Icons.Heart />}
-                    </div>
-                    <div style={{cursor:"pointer"}}><Icons.Comment /></div>
-                    <div onClick={handleShare} style={{cursor:"pointer"}}><Icons.Share /></div>
-                </div>
-                
-                <div style={{fontWeight: "bold", fontSize: "13px", color: "#003366", marginBottom: "5px"}}>{likeCount} likes</div>
-                <div style={{fontSize: "14px", color: "#333", marginBottom: "10px"}}>
-                    <span style={{fontWeight: "bold", marginRight: "5px"}}>{user?.username}</span>
-                    {post.desc}
-                </div>
-
-                {/* Comment Input */}
-                <div style={{display: "flex", alignItems: "center", borderTop: "1px solid #eee", paddingTop: "10px"}}>
+            {/* 3. Comment Input Bar (Fixed Bottom) */}
+            <div style={{
+                borderTop: "1px solid #f0f0f0",
+                padding: "12px 15px",
+                display: "flex", alignItems: "center",
+                background: "#fff",
+                zIndex: 2
+            }}>
+                <div style={{
+                    flex: 1,
+                    display: "flex", alignItems: "center",
+                    background: "#f0f2f5", // لون كبسولة رمادي فاتح
+                    borderRadius: "25px",
+                    padding: "10px 15px",
+                    marginRight: "10px"
+                }}>
                     <input 
                         type="text" 
                         placeholder="Add a comment..." 
                         value={comment}
                         onChange={(e) => setComment(e.target.value)}
-                        style={{flex: 1, border: "none", outline: "none", fontSize: "14px"}}
+                        style={{
+                            flex: 1, border: "none", background: "transparent", 
+                            outline: "none", fontSize: "14px", color: "#333"
+                        }}
                     />
-                    <div onClick={handleCommentSubmit} style={{cursor: "pointer", opacity: comment ? 1 : 0.5}}>
-                        <Icons.Send />
-                    </div>
+                </div>
+                <div 
+                    onClick={handleCommentSubmit} 
+                    style={{
+                        cursor: "pointer", 
+                        color: comment.trim() ? "#007aff" : "#cce0ff",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "color 0.2s"
+                    }}
+                >
+                    <Icons.Send />
                 </div>
             </div>
         </div>
@@ -168,6 +197,7 @@ export default function Search() {
   
   const user = JSON.parse(localStorage.getItem("user"));
 
+  // Fetch Explore Posts
   useEffect(() => {
     const fetchExplorePosts = async () => {
       try {
@@ -178,6 +208,7 @@ export default function Search() {
     fetchExplorePosts();
   }, []);
 
+  // Search Logic
   useEffect(() => {
     const searchUsers = async () => {
       if (query.length > 1) {
@@ -228,7 +259,7 @@ export default function Search() {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Modal Overlay */}
       {selectedPost && (
           <div style={styles.modalOverlay} onClick={() => setSelectedPost(null)}>
               <div onClick={(e) => e.stopPropagation()} style={{display:"flex", width:"100%", justifyContent:"center"}}>
