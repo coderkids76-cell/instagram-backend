@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config"; 
 
-// --- أيقونات (الأزرق الناعم) ---
+// --- الأيقونات (تم دمج جميع الأيقونات المطلوبة) ---
 const Icons = {
   Logo: () => <div style={{fontFamily: "'Billabong', cursive", fontSize: "32px", color: "#007aff", fontWeight: "bold", letterSpacing: "0.5px"}}>Nexo</div>, 
   HeartHeader: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>,
   Messenger: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
   Heart: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>,
   HeartFilled: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="#ff3040" stroke="#ff3040" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>,
-  Comment: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinejoin="round"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"></path></svg>,
+  Comment: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"></path></svg>,
   Share: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
   Save: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>,
   More: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>,
@@ -24,7 +24,7 @@ const Icons = {
   Text: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>,
 };
 
-// --- ✅ مكون عرض الستوري (Story Viewer) ---
+// --- Story Viewer (عرض الستوري) ---
 const StoryViewer = ({ story, onClose }) => {
     if (!story) return null;
     return (
@@ -45,7 +45,7 @@ const StoryViewer = ({ story, onClose }) => {
     );
 };
 
-// --- ✅ مكون محرر الستوري (Story Editor) ---
+// --- Story Editor (تعديل الستوري قبل الرفع) ---
 const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
     const [text, setText] = useState("");
     const [music, setMusic] = useState("");
@@ -70,6 +70,7 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
             <div style={{flex:1, position:"relative", display:"flex", justifyContent:"center", alignItems:"center", overflow:"hidden"}}>
                 {fileType === "video" ? <video src={preview} autoPlay loop style={{maxHeight:"100%", maxWidth:"100%"}} /> : <img src={preview} style={{maxHeight:"100%", maxWidth:"100%"}} />}
                 {text && <div style={{position:"absolute", top:"50%", color:"white", background:"rgba(0,0,0,0.5)", padding:"10px", borderRadius:"10px", fontSize:"24px", fontWeight:"bold"}}>{text}</div>}
+                {music && <div style={{position:"absolute", top:"100px", color:"white", background:"rgba(0,0,0,0.5)", padding:"5px 10px", borderRadius:"10px"}}>🎵 {music}</div>}
             </div>
             <div style={{padding:"20px", display:"flex", justifyContent:"flex-end"}}>
                 <button 
@@ -77,13 +78,14 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
                     onClick={() => { setIsUploading(true); onUpload({ text, music, location }); }} 
                     style={{background: isUploading ? "#555" : "white", color: "black", border: "none", padding:"10px 20px", borderRadius:"20px", fontWeight:"bold"}}
                 >
-                    {isUploading ? "Sharing..." : "Share to Story >"}
+                    {isUploading ? "Uploading..." : "Share to Story >"}
                 </button>
             </div>
         </div>
     );
 };
 
+// --- Post Item (تصميم البوست) ---
 const PostItem = ({ post, currentUser }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -225,14 +227,15 @@ const PostItem = ({ post, currentUser }) => {
   );
 };
 
+// --- الصفحة الرئيسية (Home) ---
 function Home() {
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
-  // ✅ تغيير هنا: استخدام State للستوريات بدلاً من المصفوفة الثابتة
+  // ✅ مصفوفة الستوريات أصبحت حالة (State) وليست ثابتة
   const [stories, setStories] = useState([]); 
   const [loading, setLoading] = useState(true);
   
-  // States للستوري
+  // حالات الستوري
   const [viewingStory, setViewingStory] = useState(null);
   const [editorFile, setEditorFile] = useState(null);
   const [editorFileType, setEditorFileType] = useState("image");
@@ -331,7 +334,7 @@ function Home() {
         </div>
         <input type="file" ref={storyInputRef} style={{display: "none"}} accept="image/*,video/*" onChange={handleFileSelect} />
 
-        {/* عرض ستوريات المتابعين */}
+        {/* عرض ستوريات المتابعين الحقيقية من السيرفر */}
         {stories.map((story) => (
           <div key={story._id} style={styles.storyItem} onClick={() => setViewingStory(story)}>
             <div style={styles.storyRing}>
@@ -343,9 +346,4 @@ function Home() {
             </div>
             <span style={styles.storyName}>User</span>
           </div>
-        ))}
-      </div>
-
-      {/* النوافذ المنبثقة للستوري */}
-      {editorFile && <StoryEditor file={editorFile} fileType={editorFileType} onClose={() => setEditorFile(null)} onUpload={handleUploadStory} />}
-      {viewingStory && <StoryViewer story={viewingStory} onClose={() => setViewingStory(null
+        ))
