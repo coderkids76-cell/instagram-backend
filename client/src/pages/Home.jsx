@@ -20,11 +20,12 @@ const Icons = {
   Plus: () => <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
   Reels: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>,
   
-  // Story Icons (White)
+  // Story Icons
   CloseWhite: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
   MusicWhite: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>,
   TextWhite: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>,
-  StickerWhite: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 15l-4 4h-4v-4l4-4 4 4z"></path><path d="M10 10l4-4h4v4l-4 4-4-4z"></path></svg>
+  StickerWhite: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 15l-4 4h-4v-4l4-4 4 4z"></path><path d="M10 10l4-4h4v4l-4 4-4-4z"></path></svg>,
+  Trash: () => <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
 };
 
 // --- مكون البحث عن الموسيقى ---
@@ -47,7 +48,7 @@ const MusicSearchModal = ({ onClose, onSelectMusic }) => {
     const playPreview = (url) => {
         if (audioRef.current) {
             audioRef.current.src = url;
-            audioRef.current.play().catch(e => console.log("Audio play error", e));
+            audioRef.current.play().catch(e => console.log("Audio error", e));
         }
     };
 
@@ -56,22 +57,13 @@ const MusicSearchModal = ({ onClose, onSelectMusic }) => {
             <div style={igStyles.musicHeader}>
                 <span style={{flex:1}}></span>
                 <span style={{fontWeight:"bold", fontSize:"16px", color: "white"}}>Music</span>
-                <div style={{flex:1, textAlign:"right", cursor:"pointer"}} onClick={onClose}>
-                    <Icons.CloseWhite />
-                </div>
+                <div style={{flex:1, textAlign:"right", cursor:"pointer"}} onClick={onClose}><Icons.CloseWhite /></div>
             </div>
             <div style={{padding:"10px"}}>
                  <div style={igStyles.searchBar}>
-                    <input 
-                        style={igStyles.searchInput} 
-                        placeholder="Search songs..." 
-                        value={query} 
-                        onChange={(e) => setQuery(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && searchMusic()}
-                    />
+                    <input style={igStyles.searchInput} placeholder="Search songs..." value={query} onChange={(e) => setQuery(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && searchMusic()} />
                 </div>
             </div>
-           
             <div style={igStyles.resultsList}>
                 {searching ? <div style={{textAlign:"center", padding:"20px", color:"#aaa"}}>Searching...</div> : results.map(track => (
                     <div key={track.trackId} style={igStyles.trackItem}>
@@ -90,23 +82,26 @@ const MusicSearchModal = ({ onClose, onSelectMusic }) => {
     );
 };
 
-// --- Story Editor (المحرر مع إصلاح الشاشة البيضاء وضغط الصور) ---
+// --- Story Editor (مصحح بالكامل: سلة المهملات، تكبير، ضغط) ---
 const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
     const [preview, setPreview] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
     const [showMusicSearch, setShowMusicSearch] = useState(false);
     
-    // States for draggable elements
-    const [textData, setTextData] = useState({ content: "", x: 100, y: 300 });
-    const [musicData, setMusicData] = useState({ trackName: "", artistName:"", x: 100, y: 100 });
+    // عناصر قابلة للسحب
+    const [textData, setTextData] = useState(null);
+    const [musicData, setMusicData] = useState(null);
+    
+    // حالة سلة المهملات
+    const [showTrash, setShowTrash] = useState(false);
+    const [isHoveringTrash, setIsHoveringTrash] = useState(false);
 
-    // Refs for Draggable (Fixes findDOMNode warnings and potential crashes)
+    // مراجع العناصر (ضروري جداً لمنع الشاشة البيضاء)
     const textNodeRef = useRef(null);
     const musicNodeRef = useRef(null);
 
     useEffect(() => {
         if(file) setPreview(URL.createObjectURL(file));
-        // Cleanup function
         return () => { if(preview) URL.revokeObjectURL(preview); };
     }, [file]);
 
@@ -114,7 +109,39 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
         setMusicData({ ...track, x: 100, y: 150 });
     };
 
-    // ✅ دالة ضغط الصورة (الحل لمشكلة Failed to upload)
+    // منطق السحب والحذف
+    const handleDragStart = () => setShowTrash(true);
+    
+    const handleDrag = (e, data) => {
+        // التحقق مما إذا كان العنصر فوق منطقة الحذف (آخر 100 بكسل من الشاشة)
+        if (data.y > window.innerHeight - 150) {
+            setIsHoveringTrash(true);
+        } else {
+            setIsHoveringTrash(false);
+        }
+    };
+
+    const handleStopText = (e, data) => {
+        setShowTrash(false);
+        if (isHoveringTrash) {
+            setTextData(null); // حذف النص
+            setIsHoveringTrash(false);
+        } else {
+            setTextData(prev => ({ ...prev, x: data.x, y: data.y }));
+        }
+    };
+
+    const handleStopMusic = (e, data) => {
+        setShowTrash(false);
+        if (isHoveringTrash) {
+            setMusicData(null); // حذف الموسيقى
+            setIsHoveringTrash(false);
+        } else {
+            setMusicData(prev => ({ ...prev, x: data.x, y: data.y }));
+        }
+    };
+
+    // ✅ دالة ضغط قوية جداً لتجنب خطأ Failed to upload
     const compressAndUpload = async () => {
         if (!file) return;
         setIsUploading(true);
@@ -123,7 +150,6 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
             let finalMedia = "";
             
             if (fileType === 'image') {
-                // ضغط الصورة باستخدام Canvas
                 finalMedia = await new Promise((resolve) => {
                     const reader = new FileReader();
                     reader.readAsDataURL(file);
@@ -132,19 +158,20 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
                         img.src = event.target.result;
                         img.onload = () => {
                             const canvas = document.createElement("canvas");
-                            const MAX_WIDTH = 800; // تقليل العرض
+                            // تحديد أقصى عرض 1080 للحفاظ على الجودة مع تقليل الحجم
+                            const MAX_WIDTH = 1080; 
                             const scaleSize = MAX_WIDTH / img.width;
                             canvas.width = MAX_WIDTH;
                             canvas.height = img.height * scaleSize;
                             const ctx = canvas.getContext("2d");
                             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            // تحويل لجودة 60% JPEG
-                            resolve(canvas.toDataURL("image/jpeg", 0.6)); 
+                            // ضغط JPEG بجودة 0.7 (ممتاز للموبايل)
+                            resolve(canvas.toDataURL("image/jpeg", 0.7)); 
                         };
                     };
                 });
             } else {
-                // إذا كان فيديو، نرسله كما هو (أو نحتاج سيرفر قوي لضغطه)
+                // الفيديو يحتاج معالجة مختلفة، حالياً نرسله كما هو
                 finalMedia = await new Promise(resolve => {
                     const reader = new FileReader();
                     reader.readAsDataURL(file);
@@ -152,16 +179,15 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
                 });
             }
 
-            // إرسال البيانات
             await onUpload({ 
-                img: finalMedia, // الصورة المضغوطة
-                text: textData.content ? JSON.stringify(textData) : "", 
-                music: musicData.trackName ? JSON.stringify(musicData) : "" 
+                img: finalMedia,
+                text: textData ? JSON.stringify(textData) : "", 
+                music: musicData ? JSON.stringify(musicData) : "" 
             });
 
         } catch (err) {
-            console.error("Compression/Upload Error:", err);
-            alert("Error processing file.");
+            console.error("Upload Error:", err);
+            alert("Upload failed. Image might still be too large.");
             setIsUploading(false);
         }
     };
@@ -173,80 +199,93 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
                 <div onClick={onClose} style={{cursor:"pointer"}}><Icons.CloseWhite /></div>
                 <div style={igStyles.topIconsRight}>
                     <div onClick={() => setShowMusicSearch(true)} style={{cursor:"pointer"}}><Icons.MusicWhite /></div>
-                    <div onClick={() => { const t = prompt("Write your text:"); if(t) setTextData({...textData, content: t}); }} style={{cursor:"pointer"}}><Icons.TextWhite /></div>
+                    <div onClick={() => { const t = prompt("Write your text:"); if(t) setTextData({content: t, x: 100, y: 300}); }} style={{cursor:"pointer"}}><Icons.TextWhite /></div>
                     <div style={{cursor:"pointer"}}><Icons.StickerWhite /></div>
                 </div>
             </div>
 
-            {/* Preview Area */}
+            {/* Preview Area (Full Screen) */}
             <div style={igStyles.previewArea}>
                 {preview && (
                     fileType === "video" ? (
-                        <video src={preview} autoPlay loop playsInline muted style={igStyles.previewMedia} />
+                        <video src={preview} autoPlay loop playsInline muted style={igStyles.fullScreenMedia} />
                     ) : (
-                        <img src={preview} style={igStyles.previewMedia} alt="preview"/>
+                        <img src={preview} style={igStyles.fullScreenMedia} alt="preview"/>
                     )
                 )}
 
-                {/* Text Draggable (Safe Render) */}
-                {textData.content && (
+                {/* Text Draggable */}
+                {textData && (
                     <Draggable 
                         nodeRef={textNodeRef}
                         position={{x: textData.x, y: textData.y}} 
-                        onStop={(e, data) => setTextData(prev => ({ ...prev, x: data.x, y: data.y }))} 
+                        onStart={handleDragStart}
+                        onDrag={handleDrag}
+                        onStop={handleStopText} 
                         bounds="parent"
                     >
-                        <div ref={textNodeRef} style={igStyles.draggableText}>
+                        <div ref={textNodeRef} style={{...igStyles.draggableText, opacity: isHoveringTrash && showTrash ? 0.5 : 1}}>
                             {textData.content}
                         </div>
                     </Draggable>
                 )}
 
-                 {/* Music Draggable (Safe Render) */}
-                {musicData.trackName && (
+                 {/* Music Draggable */}
+                {musicData && (
                     <Draggable 
                         nodeRef={musicNodeRef}
                         position={{x: musicData.x, y: musicData.y}} 
-                        onStop={(e, data) => setMusicData(prev => ({ ...prev, x: data.x, y: data.y }))} 
+                        onStart={handleDragStart}
+                        onDrag={handleDrag}
+                        onStop={handleStopMusic} 
                         bounds="parent"
                     >
-                        <div ref={musicNodeRef} style={igStyles.draggableMusic}>
+                        <div ref={musicNodeRef} style={{...igStyles.draggableMusic, opacity: isHoveringTrash && showTrash ? 0.5 : 1}}>
                             <span style={{marginRight:"8px", fontSize:"20px"}}>🎵</span>
                             <div style={{display:"flex", flexDirection:"column", alignItems:"flex-start"}}>
-                                <span style={{fontWeight:"bold", fontSize:"12px"}}>{musicData.trackName.substring(0, 20)}</span>
-                                <span style={{fontSize:"10px", opacity: 0.8}}>{musicData.artistName.substring(0, 20)}</span>
+                                <span style={{fontWeight:"bold", fontSize:"12px"}}>{musicData.trackName.substring(0, 15)}...</span>
+                                <span style={{fontSize:"10px", opacity: 0.8}}>{musicData.artistName.substring(0, 15)}...</span>
                             </div>
                         </div>
                     </Draggable>
                 )}
             </div>
 
-            {/* Bottom Bar */}
-            <div style={igStyles.bottomBar}>
-                <button 
-                    disabled={isUploading}
-                    onClick={compressAndUpload} 
-                    style={{
-                        ...igStyles.shareButton,
-                        opacity: isUploading ? 0.7 : 1,
-                        cursor: isUploading ? "not-allowed" : "pointer"
-                    }}
-                >
-                    {isUploading ? "Sharing..." : "Share to Story >"}
-                </button>
-            </div>
+            {/* Trash Bin Animation */}
+            {showTrash && (
+                <div style={{
+                    position: "absolute", bottom: "80px", left: "50%", transform: "translateX(-50%)",
+                    background: isHoveringTrash ? "rgba(255, 0, 0, 0.8)" : "rgba(0, 0, 0, 0.6)",
+                    padding: "15px", borderRadius: "50%", transition: "all 0.2s", zIndex: 3050,
+                    display: "flex", justifyContent: "center", alignItems: "center",
+                    width: "60px", height: "60px", border: "2px solid white"
+                }}>
+                    <Icons.Trash />
+                </div>
+            )}
 
-            {/* Music Modal */}
+            {/* Bottom Bar */}
+            {!showTrash && (
+                <div style={igStyles.bottomBar}>
+                    <button 
+                        disabled={isUploading}
+                        onClick={compressAndUpload} 
+                        style={{...igStyles.shareButton, opacity: isUploading ? 0.7 : 1}}
+                    >
+                        {isUploading ? "Sharing..." : "Share to Story >"}
+                    </button>
+                </div>
+            )}
+
             {showMusicSearch && <MusicSearchModal onClose={() => setShowMusicSearch(false)} onSelectMusic={handleSelectMusic} />}
         </div>
     );
 };
 
-// --- Story Viewer (عرض للزوار) ---
+// --- Story Viewer (Full Screen Fix) ---
 const StoryViewer = ({ story, onClose }) => {
     if (!story) return null;
     
-    // فك تشفير البيانات
     let musicData = null;
     let textData = null;
     try { musicData = story.music ? JSON.parse(story.music) : null; } catch(e) {}
@@ -254,19 +293,19 @@ const StoryViewer = ({ story, onClose }) => {
 
     return (
         <div style={{position:"fixed", top:0, left:0, right:0, bottom:0, background:"#000", zIndex:2000, display:"flex", justifyContent:"center", alignItems:"center"}}>
-            <div style={{position:"relative", width:"100%", height:"100%", maxHeight:"100vh", maxWidth:"500px", display:"flex", justifyContent:"center", alignItems:"center", overflow:"hidden", background: "#111"}}>
+            <div style={{position:"relative", width:"100vw", height:"100vh", display:"flex", justifyContent:"center", alignItems:"center", overflow:"hidden", background: "#000"}}>
                 {story.type === "video" ? (
-                    <video src={story.img} autoPlay playsInline style={igStyles.previewMedia} />
+                    <video src={story.img} autoPlay playsInline style={igStyles.fullScreenMedia} />
                 ) : (
-                    <img src={story.img} style={igStyles.previewMedia} alt="story"/>
+                    <img src={story.img} style={igStyles.fullScreenMedia} alt="story"/>
                 )}
                 
-                {textData && textData.content && (
+                {textData && (
                     <div style={{...igStyles.draggableText, position:"absolute", top:0, left:0, transform: `translate(${textData.x}px, ${textData.y}px)`, cursor:"default"}}>
                         {textData.content}
                     </div>
                 )}
-                {musicData && musicData.trackName && (
+                {musicData && (
                     <div style={{...igStyles.draggableMusic, position:"absolute", top:0, left:0, transform: `translate(${musicData.x}px, ${musicData.y}px)`, cursor:"default"}}>
                         🎵 {musicData.trackName}
                     </div>
@@ -280,7 +319,7 @@ const StoryViewer = ({ story, onClose }) => {
     );
 };
 
-// --- Post Item ---
+// --- Post Item (Standard) ---
 const PostItem = ({ post, currentUser }) => {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -341,11 +380,6 @@ const PostItem = ({ post, currentUser }) => {
           await axios.put(`${API_URL}/api/posts/${post._id}`, { userId: currentUser._id, desc: editDesc });
           setIsEditing(false); setShowMenu(false);
       } catch (err) { alert("Failed to update post"); }
-  };
-
-  const formatTime = (date) => {
-      const d = new Date(date);
-      return d.toLocaleDateString("en-US", { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -417,23 +451,18 @@ const PostItem = ({ post, currentUser }) => {
         <div style={{cursor: "pointer"}}><Icons.Save /></div>
       </div>
       <div style={styles.likesCount}>{likeCount} likes</div>
-      <div style={styles.time}>{formatTime(post.createdAt)}</div>
     </div>
   );
 };
 
-// --- Page Component ---
 function Home() {
   const navigate = useNavigate();
   const [posts, setPosts] = useState([]);
   const [stories, setStories] = useState([]); 
   const [loading, setLoading] = useState(true);
-  
-  // States for Story Modals
   const [viewingStory, setViewingStory] = useState(null);
   const [editorFile, setEditorFile] = useState(null);
   const [editorFileType, setEditorFileType] = useState("image");
-
   const user = JSON.parse(localStorage.getItem("user"));
   const storyInputRef = useRef(null); 
 
@@ -443,15 +472,10 @@ function Home() {
       try {
         const postsRes = await axios.get(`${API_URL}/api/posts/timeline/${user._id}`);
         setPosts(postsRes.data.sort((p1, p2) => new Date(p2.createdAt) - new Date(p1.createdAt)));
-        
         const storiesRes = await axios.get(`${API_URL}/api/stories/timeline/${user._id}`);
         setStories(storiesRes.data);
-        
         setLoading(false);
-      } catch (err) {
-        console.log(err);
-        setLoading(false);
-      }
+      } catch (err) { console.log(err); setLoading(false); }
     };
     fetchData();
   }, [user?._id, navigate]);
@@ -484,7 +508,7 @@ function Home() {
           alert("Story uploaded successfully! 🎉");
       } catch (err) {
           console.error(err);
-          alert("Failed to upload. Try a smaller image.");
+          alert("Failed to upload. Ensure image is not too large.");
       }
   };
 
@@ -526,7 +550,6 @@ function Home() {
         ))}
       </div>
 
-      {/* Editor & Viewer */}
       {editorFile && <StoryEditor file={editorFile} fileType={editorFileType} onClose={() => setEditorFile(null)} onUpload={handleUploadComplete} />}
       {viewingStory && <StoryViewer story={viewingStory} onClose={() => setViewingStory(null)} />}
 
@@ -556,7 +579,6 @@ function Home() {
   );
 }
 
-// --- Styles ---
 const glassStyle = { background: "rgba(255, 255, 255, 0.5)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)", border: "1px solid rgba(255, 255, 255, 0.4)", boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.05)" };
 
 const styles = {
@@ -596,19 +618,18 @@ const styles = {
     createBtn: { marginTop: "20px", padding: "12px 24px", background: "#007aff", color: "white", border: "none", borderRadius: "20px", fontWeight:"bold" }
 };
 
-// --- Instagram Styles ---
 const igStyles = {
     editorContainer: { position:"fixed", top:0, left:0, right:0, bottom:0, background:"#000", zIndex:3000, display:"flex", flexDirection:"column" },
     topBar: { padding:"15px 20px", display:"flex", justifyContent:"space-between", alignItems:"center", position:"absolute", top:0, left:0, right:0, zIndex:10 },
     topIconsRight: { display:"flex", gap:"25px" },
+    // ✅ Fix: Full screen object-fit cover
+    fullScreenMedia: { width:"100vw", height:"100vh", objectFit:"cover", position:"absolute", top:0, left:0 },
     previewArea: { flex:1, position:"relative", display:"flex", justifyContent:"center", alignItems:"center", overflow:"hidden", background:"#000" },
-    previewMedia: { width:"100%", height:"100%", objectFit:"contain" }, 
+    previewMedia: { width:"100%", height:"100%", objectFit:"contain" },
     bottomBar: { padding:"20px", display:"flex", justifyContent:"flex-end", position:"absolute", bottom:0, left:0, right:0, zIndex:10 },
     shareButton: { background:"white", color:"black", border:"none", padding:"12px 24px", borderRadius:"30px", fontWeight:"bold", fontSize:"16px" },
-    
     draggableText: { position:"absolute", color:"white", background:"rgba(0,0,0,0.5)", padding:"5px 15px", borderRadius:"12px", fontSize:"22px", fontWeight:"600", cursor:"move", textAlign:"center", maxWidth:"80%" },
     draggableMusic: { position:"absolute", color:"white", background:"rgba(255,255,255,0.2)", backdropFilter:"blur(5px)", padding:"10px 15px", borderRadius:"12px", cursor:"move", display:"flex", alignItems:"center", boxShadow:"0 2px 10px rgba(0,0,0,0.2)" },
-
     musicModal: { position:"fixed", bottom:0, left:0, right:0, height:"70vh", background:"#1a1a1a", borderTopLeftRadius:"20px", borderTopRightRadius:"20px", zIndex:3100, display:"flex", flexDirection:"column", boxShadow:"0 -5px 20px rgba(0,0,0,0.5)" },
     musicHeader: { padding:"15px", display:"flex", justifyContent:"center", alignItems:"center", borderBottom:"1px solid #333" },
     searchBar: { background:"#333", padding:"8px 12px", borderRadius:"10px", display:"flex", alignItems:"center" },
