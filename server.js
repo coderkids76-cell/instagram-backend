@@ -8,43 +8,55 @@ import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/auth.js";
 import postRoutes from "./routes/posts.js";
-import userRoutes from "./routes/users.js"; // 👈 تأكد من وجود هذا السطر
+import userRoutes from "./routes/users.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
+
+// الاتصال بقاعدة البيانات مع إضافة تسجيل للأخطاء للمساعدة في Koyeb Logs
 connectDB();
 
 const app = express();
 
+// --- إعدادات CORS المحدثة لربط Vercel بـ Koyeb ---
 app.use(cors({
-  origin: true,
+    // استبدل هذا الرابط برابط الـ Frontend الخاص بك على Vercel
+    origin: "https://instagram-backend-esxi.vercel.app", 
     credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"]
-        }));
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
-        app.use(helmet());
+app.use(helmet());
 
-        // السماح ببيانات كبيرة (50mb)
-        app.use(express.json({ limit: "50mb" })); 
-        app.use(express.urlencoded({ limit: "50mb", extended: true }));
+// السماح ببيانات كبيرة لرفع صور تطبيق Nexo
+app.use(express.json({ limit: "50mb" })); 
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
-        app.use(morgan("dev"));
+app.use(morgan("dev"));
 
-        app.use("/api/auth", authRoutes);
-        app.use("/api/posts", postRoutes);
-        app.use("/api/users", userRoutes); // 👈 وتأكد من وجود هذا السطر
+// تعريف المسارات الأساسية
+app.use("/api/auth", authRoutes);
+app.use("/api/posts", postRoutes);
+app.use("/api/users", userRoutes);
 
-        app.get("/", (req, res) => {
-          res.send("✅ Instagram Backend is Running!");
-          });
+// رسالة التأكد من تشغيل السيرفر
+app.get("/", (req, res) => {
+    res.send("✅ Instagram Backend (Nexo) is Running on Koyeb!");
+});
 
-          const PORT = process.env.PORT || 3000;
-          app.listen(PORT, () => {
-            console.log(`Server started on port ${PORT}`);
-            });
+// معالج الأخطاء العام لمساعدتك في اكتشاف المشاكل من Logs المنصة
+app.use((err, req, res, next) => {
+    console.error("Internal Server Error:", err.message);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+});
 
-            export default app;
-            
+// استخدام المنفذ الذي توفره Koyeb تلقائياً
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => {
+    console.log(`🚀 Server started on port ${PORT}`);
+});
+
+export default app;
