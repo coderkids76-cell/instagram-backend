@@ -14,49 +14,44 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
-
-// الاتصال بقاعدة البيانات مع إضافة تسجيل للأخطاء للمساعدة في Koyeb Logs
 connectDB();
 
 const app = express();
 
-// --- إعدادات CORS المحدثة لربط Vercel بـ Koyeb ---
+// --- إعدادات CORS الشاملة لمنع خطأ ERR_FAILED ---
 app.use(cors({
-    // استبدل هذا الرابط برابط الـ Frontend الخاص بك على Vercel
-    origin: "https://instagram-backend-esxi.vercel.app", 
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-}));
+    origin: [
+            "https://instagram-backend-esxi.vercel.app", // رابط Vercel الخاص بك
+                    "http://localhost:5173",                     // للتطوير المحلي
+                            "http://localhost:3000"
+                                ],
+                                    credentials: true,
+                                        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                                            allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+                                            }));
 
-app.use(helmet());
+                                            // إجابة صريحة لطلبات OPTIONS قبل معالجة أي مسارات أخرى
+                                            app.options("*", cors());
 
-// السماح ببيانات كبيرة لرفع صور تطبيق Nexo
-app.use(express.json({ limit: "50mb" })); 
-app.use(express.urlencoded({ limit: "50mb", extended: true }));
+                                            app.use(helmet({
+                                                crossOriginResourcePolicy: false, // للسماح بظهور الصور في Vercel
+                                                }));
 
-app.use(morgan("dev"));
+                                                app.use(express.json({ limit: "50mb" })); 
+                                                app.use(express.urlencoded({ limit: "50mb", extended: true }));
+                                                app.use(morgan("dev"));
 
-// تعريف المسارات الأساسية
-app.use("/api/auth", authRoutes);
-app.use("/api/posts", postRoutes);
-app.use("/api/users", userRoutes);
+                                                // المسارات الأساسية
+                                                app.use("/api/auth", authRoutes);
+                                                app.use("/api/posts", postRoutes);
+                                                app.use("/api/users", userRoutes);
 
-// رسالة التأكد من تشغيل السيرفر
-app.get("/", (req, res) => {
-    res.send("✅ Instagram Backend (Nexo) is Running on Koyeb!");
-});
+                                                app.get("/", (req, res) => {
+                                                    res.send("✅ Nexo Backend is Live and Connected to MongoDB!");
+                                                    });
 
-// معالج الأخطاء العام لمساعدتك في اكتشاف المشاكل من Logs المنصة
-app.use((err, req, res, next) => {
-    console.error("Internal Server Error:", err.message);
-    res.status(500).json({ message: "Internal Server Error", error: err.message });
-});
-
-// استخدام المنفذ الذي توفره Koyeb تلقائياً
-const PORT = process.env.PORT || 8000;
-app.listen(PORT, () => {
-    console.log(`🚀 Server started on port ${PORT}`);
-});
-
-export default app;
+                                                    const PORT = process.env.PORT || 8000;
+                                                    app.listen(PORT, () => {
+                                                        console.log(`🚀 Server running on port ${PORT}`);
+                                                        });
+                                                        
