@@ -1,16 +1,50 @@
 import express from "express";
 import Post from "../models/Post.js";
 import User from "../models/User.js";
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import multer from 'multer';
 
 const router = express.Router();
 
-// 1. إنشاء منشور
-router.post("/", async (req, res) => {
-  const newPost = new Post(req.body);
+// --- إعدادات Cloudinary (تأكد من إضافتها في Koyeb) ---
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// إعداد مكان تخزين الصور في السحابة
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'nexo_posts', // اسم المجلد الذي ستظهر فيه الصور
+    allowed_formats: ['jpg', 'png', 'jpeg'],
+  },
+});
+
+const upload = multer({ storage: storage });
+
+// 1. إنشاء منشور (معدل ليدعم رفع الصور لـ Cloudinary)
+router.post("/", upload.single("img"), async (req, res) => {
   try {
+    const newPostData = {
+      userId: req.body.userId,
+      desc: req.body.desc,
+    };
+
+    // إذا تم رفع صورة، نأخذ الرابط من Cloudinary
+    if (req.file) {
+      newPostData.img = req.file.path; 
+    }
+
+    const newPost = new Post(newPostData);
     const savedPost = await newPost.save();
     res.status(200).json(savedPost);
-  } catch (err) { res.status(500).json(err); }
+  } catch (err) {
+    console.error("Upload Error:", err);
+    res.status(500).json("حدث خطأ أثناء رفع المنشور");
+  }
 });
 
 // 2. تحديث منشور
@@ -79,10 +113,9 @@ router.get("/profile/:username", async (req, res) => {
   } catch (err) { res.status(500).json(err); }
 });
 
-// 8. ✅✅✅ الكود الجديد: جلب منشورات عشوائية (Explore)
+// 8. جلب منشورات عشوائية (Explore)
 router.get("/explore/all", async (req, res) => {
   try {
-    // يجلب 20 منشور بشكل عشوائي من كل قاعدة البيانات
     const randomPosts = await Post.aggregate([ { $sample: { size: 10 } } ]);
     res.status(200).json(randomPosts);
   } catch (err) { res.status(500).json(err); }
