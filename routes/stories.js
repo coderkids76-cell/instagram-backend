@@ -1,3 +1,4 @@
+// routes/stories.js
 import express from "express";
 import Story from "../models/Story.js";
 import { v2 as cloudinary } from 'cloudinary';
@@ -6,7 +7,6 @@ import multer from 'multer';
 
 const router = express.Router();
 
-// إعدادات Cloudinary
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -20,22 +20,23 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage });
 
-// رفع ستوري جديد
 router.post("/", upload.single("img"), async (req, res) => {
   try {
     let imageUrl = "";
 
-    // 1. إذا تم رفع ملف حقيقي عبر Multer
+    // 1. إذا وصل الملف كملف حقيقي (FormData)
     if (req.file) {
       imageUrl = req.file.path;
     } 
-    // 2. إذا كانت الصورة مرسلة كـ Base64 (للتوافق مع الكود القديم)
-    else if (req.body.img && req.body.img.includes("base64")) {
-      const uploadRes = await cloudinary.uploader.upload(req.body.img, { folder: "nexo_stories" });
+    // 2. إذا وصل الملف كنص Base64 (كما يظهر في صورتك الأخيرة)
+    else if (req.body.img) {
+      const uploadRes = await cloudinary.uploader.upload(req.body.img, {
+        folder: "nexo_stories",
+      });
       imageUrl = uploadRes.secure_url;
     }
 
-    if (!imageUrl) return res.status(400).json("لم يتم استلام أي صورة للرفع");
+    if (!imageUrl) return res.status(400).json("لم يتم استلام صورة");
 
     const newStory = new Story({
       userId: req.body.userId,
@@ -48,11 +49,9 @@ router.post("/", upload.single("img"), async (req, res) => {
     const savedStory = await newStory.save();
     res.status(200).json(savedStory);
   } catch (err) {
-    console.error("Cloudinary Error:", err);
-    // إرسال تفاصيل الخطأ للمتصفح بدلاً من 500 غامضة
-    res.status(500).json({ message: "فشل الرفع لـ Cloudinary", error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "خطأ في السيرفر أو Cloudinary", error: err.message });
   }
 });
 
-// جلب التايم لاين (بقية الكود الخاص بك...)
 export default router;
