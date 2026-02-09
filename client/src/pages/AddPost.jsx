@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { API_URL } from "../config"; 
 
+// الأيقونات الحديثة لتطبيق Nexo
 const ModernIcons = {
   Close: () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>,
   Upload: () => <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{color: '#007aff', opacity: 0.8}}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
@@ -18,87 +19,59 @@ function AddPost() {
   const [caption, setCaption] = useState("");
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [imageBase64, setImageBase64] = useState(""); 
+  const [file, setFile] = useState(null); // تخزين الملف الحقيقي المختار
 
-  // ✅ دالة ضغط الصورة (الحل لمشكلة Vercel)
-  const compressImage = (file) => {
-    return new Promise((resolve) => {
+  // معالجة اختيار الميديا
+  const handleMediaChange = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile); // حفظ الملف لرفعه لاحقاً
       const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target.result;
-        img.onload = () => {
-          const canvas = document.createElement("canvas");
-          const MAX_WIDTH = 800; // تصغير العرض إلى 800 بكسل
-          const scaleSize = MAX_WIDTH / img.width;
-          canvas.width = MAX_WIDTH;
-          canvas.height = img.height * scaleSize;
-          
-          const ctx = canvas.getContext("2d");
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
-          // ضغط الجودة إلى 70%
-          const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.7);
-          resolve(compressedDataUrl);
-        };
+      reader.readAsDataURL(selectedFile);
+      reader.onloadend = () => {
+        setPreview(reader.result); // للعرض المؤقت فقط في الواجهة
       };
-    });
-  };
-
-  const handleMediaChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.type.startsWith("image")) {
-        // ضغط الصورة قبل العرض
-        const compressed = await compressImage(file);
-        setPreview(compressed);
-        setImageBase64(compressed);
-      } else {
-        // الفيديو لا نضغطه حالياً (قد يفشل لو كبير)
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onloadend = () => {
-          setPreview(reader.result);
-          setImageBase64(reader.result);
-        };
-      }
     }
   };
 
   const removeMedia = (e) => {
     e.stopPropagation();
     setPreview(null);
-    setImageBase64("");
+    setFile(null);
   };
 
+  // وظيفة المشاركة النهائية
   const handleShare = async () => {
-    if (!imageBase64 && !caption.trim()) {
+    if (!file && !caption.trim()) {
         return alert("Please write something or select media!");
     }
 
     setLoading(true);
     const user = JSON.parse(localStorage.getItem("user"));
 
-    const newPost = {
-      userId: user._id,
-      desc: caption,
-      img: imageBase64 
-    };
+    // استخدام FormData لإرسال الصورة كملف حقيقي للسيرفر
+    const formData = new FormData();
+    formData.append("userId", user._id);
+    formData.append("desc", caption);
+    if (file) {
+      formData.append("img", file); // 'img' يجب أن يطابق ما يتوقعه السيرفر في multer
+    }
 
     try {
-        await axios.post(`${API_URL}/api/posts`, newPost);
+        // إرسال البيانات بترميز multipart/form-data
+        await axios.post(`${API_URL}/api/posts`, formData, {
+          headers: { "Content-Type": "multipart/form-data" }
+        });
         navigate(isReelMode ? "/profile" : "/home");
     } catch (err) {
         console.error(err);
-        // عرض الخطأ الحقيقي بدلاً من رسالة عامة
-        alert(`Error: ${err.response?.data?.message || err.message}`);
+        alert(`Upload Failed: ${err.response?.data?.message || err.message}`);
     } finally {
         setLoading(false);
     }
   };
 
-  // Styles (Glassmorphism)
+  // تصميم Glassmorphism
   const glassStyle = {
     background: "rgba(255, 255, 255, 0.7)",
     backdropFilter: "blur(20px)",
@@ -123,7 +96,7 @@ function AddPost() {
     uploadBox: {
       ...glassStyle, width: "100%", aspectRatio: preview ? (isReelMode ? "9/16" : "auto") : "2/1", 
       minHeight: "150px", borderRadius: "24px", display: "flex", justifyContent: "center", alignItems: "center",
-      cursor: "pointer", marginTop: "20px", overflow: "hidden", position: "relative", transition: "all 0.3s ease"
+      cursor: "pointer", marginTop: "20px", overflow: "hidden", position: "relative"
     },
     mediaPreview: { width: "100%", height: "100%", objectFit: "contain", maxHeight: "400px" },
     removeBtn: { position: "absolute", top: "10px", right: "10px", backgroundColor: "rgba(255,255,255,0.8)", borderRadius: "50%", padding: "5px", cursor: "pointer", zIndex: 10 }
