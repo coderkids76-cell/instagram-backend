@@ -4,7 +4,7 @@ import axios from "axios";
 import Draggable from 'react-draggable';
 import { API_URL } from "../config"; 
 
-// --- أيقونات ---
+// --- أيقونات Nexo ---
 const Icons = {
   Logo: () => <div style={{fontFamily: "'Billabong', cursive", fontSize: "32px", color: "#007aff", fontWeight: "bold", letterSpacing: "0.5px"}}>Nexo</div>, 
   HeartHeader: () => <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>,
@@ -19,7 +19,6 @@ const Icons = {
   Search: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>,
   Plus: () => <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
   Reels: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#007aff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>,
-  
   CloseWhite: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
   MusicWhite: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>,
   TextWhite: () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7"></polyline><line x1="9" y1="20" x2="15" y2="20"></line><line x1="12" y1="4" x2="12" y2="20"></line></svg>,
@@ -104,7 +103,6 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
         return () => { if(preview) URL.revokeObjectURL(preview); };
     }, [file]);
 
-    // Handlers
     const handleDragStart = () => setShowTrash(true);
     const handleDrag = (e, data) => {
         if (data.y > window.innerHeight - 150) setIsHoveringTrash(true);
@@ -123,68 +121,22 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
         else { setMusicData(prev => ({ ...prev, x: data.x, y: data.y })); }
     };
 
-    // ✅✅✅ دالة الضغط القوية جداً (الحل لمشكلة Vercel) ✅✅✅
-    const compressAndUpload = async () => {
+    // ✅✅✅ تحديث: الرفع باستخدام FormData لحل مشكلة Vercel ✅✅✅
+    const handleUploadClick = async () => {
         if (!file) return;
         setIsUploading(true);
 
-        try {
-            let finalMedia = "";
-            if (fileType === 'image') {
-                finalMedia = await new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = (event) => {
-                        const img = new Image();
-                        img.src = event.target.result;
-                        img.onload = () => {
-                            const canvas = document.createElement("canvas");
-                            // 🔻 تقليص الحجم بشكل كبير (600px عرض)
-                            const MAX_WIDTH = 600; 
-                            const scaleSize = MAX_WIDTH / img.width;
-                            canvas.width = MAX_WIDTH;
-                            canvas.height = img.height * scaleSize;
-                            const ctx = canvas.getContext("2d");
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            // 🔻 تقليل الجودة إلى 0.5 (50%)
-                            resolve(canvas.toDataURL("image/jpeg", 0.5)); 
-                        };
-                    };
-                });
-            } else {
-                // الفيديوهات صعبة على Vercel Serverless
-                // لكن سنحاول إرسالها كما هي، إذا فشلت ستظهر رسالة
-                finalMedia = await new Promise(resolve => {
-                    const reader = new FileReader();
-                    reader.readAsDataURL(file);
-                    reader.onload = e => resolve(e.target.result);
-                });
-            }
-
-            // فحص أخير قبل الإرسال
-            if (finalMedia.length > 4.5 * 1024 * 1024) {
-                alert("الملف لا يزال كبيراً جداً على استضافة Vercel المجانية. يرجى اختيار صورة أصغر.");
-                setIsUploading(false);
-                return;
-            }
-
-            await onUpload({ 
-                img: finalMedia,
-                text: textData ? JSON.stringify(textData) : "", 
-                music: musicData ? JSON.stringify(musicData) : "" 
-            });
-
-        } catch (err) {
-            console.error("Upload Error:", err);
-            // 🔻 رسالة خطأ واضحة
-            alert("فشل الرفع. الصورة/الفيديو أكبر من 4.5MB (حدود سيرفر Vercel المجاني). حاول استخدام صورة أصغر.");
-            setIsUploading(false);
-        }
+        // نرسل البيانات كـ Payload بسيط ليقوم المكون الأب Home بمعالجتها كـ FormData
+        await onUpload({ 
+            file: file, // نرسل الملف الأصلي لرفعه كـ Binary
+            text: textData ? JSON.stringify(textData) : "", 
+            music: musicData ? JSON.stringify(musicData) : "" 
+        });
+        setIsUploading(false);
     };
 
     return (
         <div style={igStyles.editorContainer}>
-            {/* Top Bar */}
             <div style={igStyles.topBar}>
                 <div onClick={onClose} style={{cursor:"pointer"}}><Icons.CloseWhite /></div>
                 <div style={igStyles.topIconsRight}>
@@ -194,7 +146,6 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
                 </div>
             </div>
 
-            {/* Preview (Full Screen) */}
             <div style={igStyles.previewArea}>
                 {preview && (
                     fileType === "video" ? (
@@ -204,7 +155,6 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
                     )
                 )}
 
-                {/* Draggables */}
                 {textData && (
                     <Draggable nodeRef={textNodeRef} position={{x: textData.x, y: textData.y}} onStart={handleDragStart} onDrag={handleDrag} onStop={handleStopText} bounds="parent">
                         <div ref={textNodeRef} style={{...igStyles.draggableText, opacity: isHoveringTrash && showTrash ? 0.5 : 1}}>
@@ -226,7 +176,6 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
                 )}
             </div>
 
-            {/* Trash Bin */}
             {showTrash && (
                 <div style={{
                     position: "absolute", bottom: "80px", left: "50%", transform: "translateX(-50%)",
@@ -238,10 +187,9 @@ const StoryEditor = ({ file, fileType, onClose, onUpload }) => {
                 </div>
             )}
 
-            {/* Bottom Button */}
             {!showTrash && (
                 <div style={igStyles.bottomBar}>
-                    <button disabled={isUploading} onClick={compressAndUpload} style={{...igStyles.shareButton, opacity: isUploading ? 0.7 : 1}}>
+                    <button disabled={isUploading} onClick={handleUploadClick} style={{...igStyles.shareButton, opacity: isUploading ? 0.7 : 1}}>
                         {isUploading ? "Sharing..." : "Share to Story >"}
                     </button>
                 </div>
@@ -446,15 +394,27 @@ function Home() {
       }
   };
 
+  // ✅✅✅ تحديث: دالة الرفع النهائية باستخدام FormData ✅✅✅
   const handleUploadComplete = async (payload) => {
       try {
-          const res = await axios.post(`${API_URL}/api/stories`, { userId: user._id, type: editorFileType, ...payload });
+          const formData = new FormData();
+          formData.append("userId", user._id);
+          formData.append("type", editorFileType);
+          formData.append("img", payload.file); // رفع الملف كـ Binary لـ Cloudinary
+          formData.append("text", payload.text);
+          formData.append("music", payload.music);
+
+          const res = await axios.post(`${API_URL}/api/stories`, formData, {
+              headers: { "Content-Type": "multipart/form-data" }
+          });
+
           setStories([...stories, res.data]); 
           setEditorFile(null); 
           alert("Story uploaded successfully! 🎉");
+          window.location.reload(); // تحديث الصفحة لرؤية الستوري الجديدة
       } catch (err) {
           console.error(err);
-          alert("Failed to upload. Try a smaller image.");
+          alert("فشل الرفع. حاول استخدام صورة أصغر أو ملف فيديو مضغوط.");
       }
   };
 
@@ -568,7 +528,6 @@ const igStyles = {
     editorContainer: { position:"fixed", top:0, left:0, right:0, bottom:0, background:"#000", zIndex:3000, display:"flex", flexDirection:"column" },
     topBar: { padding:"15px 20px", display:"flex", justifyContent:"space-between", alignItems:"center", position:"absolute", top:0, left:0, right:0, zIndex:10 },
     topIconsRight: { display:"flex", gap:"25px" },
-    // ✅ Fix: Full screen object-fit cover
     fullScreenMedia: { width:"100vw", height:"100vh", objectFit:"cover", position:"absolute", top:0, left:0 },
     previewArea: { flex:1, position:"relative", display:"flex", justifyContent:"center", alignItems:"center", overflow:"hidden", background:"#000" },
     bottomBar: { padding:"20px", display:"flex", justifyContent:"flex-end", position:"absolute", bottom:0, left:0, right:0, zIndex:10 },
