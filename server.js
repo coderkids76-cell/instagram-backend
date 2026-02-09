@@ -1,61 +1,65 @@
 import express from "express";
-import cors from "cors";
 import dotenv from "dotenv";
+import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import connectDB from "./config/db.js";
+
+// استيراد المسارات (Routes)
 import authRoutes from "./routes/auth.js";
 import postRoutes from "./routes/posts.js";
 import userRoutes from "./routes/users.js";
+import storyRoutes from "./routes/stories.js"; // 👈 تم الربط هنا لحل مشكلة الـ 404
 
 dotenv.config();
-connectDB(); // السجلات تؤكد نجاح الاتصال هنا
+
+// الاتصال بقاعدة البيانات MongoDB
+connectDB(); // السجلات تظهر نجاح الاتصال
 
 const app = express();
 
-// --- 1. إعدادات CORS الشاملة (يجب أن تكون أول Middleware) ---
+// --- إعدادات CORS الشاملة لربط Vercel بـ Koyeb ---
 app.use(cors({
-    origin: function (origin, callback) {
-        // سيسمح هذا السطر لجميع روابط Vercel الخاصة بك بالاتصال
-        if (!origin || origin.includes("vercel.app") || origin.includes("localhost")) {
-            callback(null, true);
-        } else {
-            callback(new Error("Not allowed by CORS"));
-        }
-    },
+    origin: [
+        "https://instagram-backend-esxi.vercel.app", // رابط موقعك الأساسي
+        "http://localhost:5173"
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
 }));
 
-// --- 2. معالجة طلبات OPTIONS يدوياً وبشكل فوري ---
-app.options("*", (req, res) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin);
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    return res.sendStatus(200);
-});
+// إجابة فورية لطلبات OPTIONS (Preflight) لمنع أخطاء المتصفح
+app.options("*", cors());
 
-// --- 3. إعدادات الأمان (تعطيل ما قد يحجب الصور والطلبات) ---
 app.use(helmet({
-    crossOriginResourcePolicy: false,
-    crossOriginEmbedderPolicy: false
+    crossOriginResourcePolicy: false, // للسماح بتبادل الصور مع Cloudinary
 }));
 
+// السماح ببيانات كبيرة لرفع ملفات الميديا في Nexo
 app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
 app.use(morgan("dev"));
 
-// --- 4. المسارات (Routes) ---
+// --- تعريف مسارات الـ API الأساسية ---
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/stories", storyRoutes); // ✅ الآن السيرفر سيعرف مسار القصص
 
 app.get("/", (req, res) => {
-    res.send("✅ Nexo API is Live and Connected!");
+    res.send("🚀 Nexo Backend is Live and Ready!");
 });
 
+// معالجة الأخطاء العامة
+app.use((err, req, res, next) => {
+    console.error("💥 Server Error:", err.message);
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+});
+
+// التشغيل على المنفذ المخصص من Koyeb
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
-    console.log(`🚀 Server listening on port ${PORT}`); // يعمل بنجاح
+    console.log(`✅ Server is running on port ${PORT}`);
 });
